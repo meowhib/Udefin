@@ -1,0 +1,13 @@
+<html>
+  <head>
+    <title>Courses</title>
+  </head>
+  <body>
+    <h1>Courses</h1>
+    <ul>
+      <% for (let course of courses){ %>
+        <li><a href="/courses/<%= course.name %>"><%= course.name %></a></li>
+      <% } %>
+    </ul>
+  </body>
+</html>
