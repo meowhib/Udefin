@@ -4,6 +4,8 @@ const fs = require('fs');
 
 const app = express();
 
+//Serve static files
+app.use(express.static('assets'));
 app.set('view engine', 'ejs');
 
 //Conntect to MongoDB
@@ -38,28 +40,16 @@ app.get('/', (req, res) => {
 app.get("/courses", async (req, res) => {
   const courses = await Course.find({});
   
-  console.log(courses);
   res.render('courses', {courses});
 });
 
 app.get("/courses/:id", async (req, res) => {
   const course = await Course.findOne({name: req.params.id});
-  const chapters = await Chapter.find({course: course._id});
+  const chapters = await Chapter.find({course: course._id}).sort({path: 1});
   const lessons = await Lesson.find({course: course._id});
 
   if (course) {
     res.status(200).render("course", {chapters});
-  } else {
-    res.status(404).send("Course not found");
-  }
-});
-
-app.get("/courses/:id/chapters", async (req, res) => {
-  const course = await Course.findOne({name: req.params.id}, {name: 1, path: 1});
-
-  if (course) {
-    const chapters = await Chapter.find({course: course._id}, {name: 1, path: 1});
-    res.status(200).send(chapters);
   } else {
     res.status(404).send("Course not found");
   }
