@@ -18,6 +18,7 @@ mongoose.connect('mongodb://localhost:27017/Udefin', {useNewUrlParser: true, use
 const Course = require('./models/course');
 const Chapter = require('./models/chapter');
 const Lesson = require('./models/lesson');
+const Progress = require('./models/progress');
 
 //Constants
 const PORT = 3000;
@@ -117,10 +118,15 @@ app.get("/scan", async (req, res) => {
 app.get("/rescan", async (req, res) => {
   //Delete database for rescanning
   //!WARNING! This will also destroy the progress in each course
+  //TODO: Make a seperate table for progress and link it to the lesson instead of storing it in the lesson
   await Course.deleteMany({});
   await Chapter.deleteMany({});
   await Lesson.deleteMany({});
   res.redirect("/scan");
+});
+
+app.get("/progress", async (req, res) => {
+  res.send(req.query);
 });
 
 app.listen(PORT, () => {

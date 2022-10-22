@@ -5,12 +5,7 @@
     <link rel="stylesheet" href="/css/bootstrap.min.css">
   </head>
   <body>
-    <h1>Courses</h1>
-    <ul>
-      <% for (let course of courses){ %>
-        <li><a href="/courses/<%= course.name %>"><%= course.name %></a></li>
-      <% } %>
-    </ul>
+    <%- include("./partials/courses-component", {courses}) %>
     <script src="/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
