@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Course page</title>
+  <link rel="stylesheet" href="../assets/css/bootstrap.min.css">
+</head>
+<body>
+  <% for (let chapter of lessons){ %>
+    <h1><%= chapter.chapter %></h1>
+    <% for (let lesson of chapter["lessons"]){ %>
+      <h2>
+        <% if (lesson.progress >= (lesson.length - 15)){ %>
+          [DONE]
+        <% } else if (lesson.progress > 5){ %>
+          [<%= lesson.progress %>]
+        <% } else { %>
+          [START]
+        <% } %>
+
+        <%= lesson.name %>
+      </h2>
+    <% } %>
+  <% } %>
+</body>
+</html>

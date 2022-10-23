@@ -1,12 +1,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const fs = require('fs');
+const { getVideoDurationInSeconds } = require('get-video-duration')
+const bodyParser = require('body-parser');
 
 const app = express();
 
 //Serve static files
 app.use(express.static('assets'));
 app.set('view engine', 'ejs');
+app.use(bodyParser.urlencoded({ extended: true }));
 
 //Conntect to MongoDB
 mongoose.connect('mongodb://localhost:27017/Udefin', {useNewUrlParser: true, useUnifiedTopology: true })
@@ -41,19 +44,51 @@ app.get('/', (req, res) => {
 app.get("/courses", async (req, res) => {
   const courses = await Course.find({});
   
-  res.render('courses', {courses});
+  res.render('coursesPage', {courses});
 });
 
 app.get("/courses/:id", async (req, res) => {
   const course = await Course.findOne({name: req.params.id});
   const chapters = await Chapter.find({course: course._id}).sort({path: 1});
-  const lessons = await Lesson.find({course: course._id});
+
+  var lessons = [];
+  let chapterLessons = null;
+
+  //Constructs a JSON object to facilitate the rendering of the lessons
+  for (let chapter of chapters){
+    chapterLessons = {
+      "chapter": chapter.name,
+      "lessons": await Lesson.find({ chapter: { $in: chapter._id }}).sort({path: 1})
+      .then(async (lessons) => {
+        let lessonsWithProgress = [];
+        let lessonWithProgress = null;
+
+        for (let lesson of lessons){
+          const progress = await Progress.findOne({lesson: lesson._id}, {progress: 1, length: 1});
+          lessonWithProgress = {
+            "_id": lesson._id,
+            "name": lesson.name,
+            "path": lesson.path,
+            "chapter": lesson.chapter,
+            "length": progress.length,
+            "progress": progress.progress
+          }
+          lessonsWithProgress.push(lessonWithProgress);
+        }
+        return lessonsWithProgress;
+      })
+    }
+
+    lessons.push(chapterLessons);
+  }
 
   if (course) {
-    res.status(200).render("course", {chapters});
+    res.status(200).render("coursePage", { lessons });
   } else {
     res.status(404).send("Course not found");
   }
+
+  // res.send(lessons);
 });
 
 app.get("/scan", async (req, res) => {
@@ -102,17 +137,39 @@ app.get("/scan", async (req, res) => {
           name: capitalize(urlFriendly(lesson.replace(/^[0-9- \.]+/, '').replace(".mp4", ""))),
           path: "/courses/" + course + "/" + chapter + "/" + lesson,
           chapter: newChapter._id,
+        });
+
+        //add progress to database
+        const newProgress = new Progress({
+          lesson: newLesson._id,
+          length: await getVideoDurationInSeconds('./assets/courses/' + course + "/" + chapter + "/" + lesson),
           progress: 0
         });
-        
+
         //Save the lesson to the database and link it to the chapter
         newLesson.save();
-        await Chapter.findByIdAndUpdate(newChapter._id, {$push: {"lessons": newLesson._id}});
+        newProgress.save();
+        await Chapter.findByIdAndUpdate(newChapter._id, {$push: {"lessons": newLesson._id}})
       });
     });
-  });
-
+  })
+  
   res.redirect("/courses");
+});
+
+app.get("/progress", async (req, res) => {
+  const progress = await Progress.find({});
+
+  res.send(progress);
+})
+
+app.post("/progress", async (req, res) => {
+  const lesson = req.body.lesson;
+  const progress = req.body.progress;
+
+  await Progress.findOneAndUpdate({lesson: lesson}, {progress: progress});
+
+  res.send("Progress updated");
 });
 
 app.get("/rescan", async (req, res) => {
@@ -122,6 +179,11 @@ app.get("/rescan", async (req, res) => {
   await Course.deleteMany({});
   await Chapter.deleteMany({});
   await Lesson.deleteMany({});
+
+  //Progress should be deleted only when the user wants to reset their progress
+  if (req.query.progress == "true"){
+    await Progress.deleteMany({});
+  }
   res.redirect("/scan");
 });
 
