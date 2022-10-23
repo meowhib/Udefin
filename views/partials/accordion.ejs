@@ -1,0 +1,31 @@
+<div class="accordion" id="accordionExample">
+  <% for (let i=0; i < lessons.length; i++){ %>
+    <div class="accordion-item">
+      <h2 class="accordion-header" id=<%= "heading" + i %>>
+        <!-- aria-expanded="true" -->
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target=<%= "#collapse" + i %> aria-controls=<%= "collapse" + i %>>
+          <!-- Chapter name goes here -->
+          <%= lessons[i].chapter %>
+        </button>
+      </h2>
+      <div id=<%= "collapse" + i %> class="accordion-collapse collapse" aria-labelledby=<%= "heading" + i %> data-bs-parent="#accordionExample">
+        <div class="accordion-body">
+          <!-- Lessons go here -->
+          <% for (let j=0; j < lessons[i].lessons.length; j++){ %>
+            <p>
+              <% if (lessons[i].lessons[j].progress >= (lessons[i].lessons[j].length - 15)){ %>
+                ✔️
+              <% } else if (lessons[i].lessons[j].progress > 5){ %>
+                [<%= lessons[i].lessons[j].progress %>]
+                ⬛
+              <% } else { %>
+                ▶️
+              <% } %>
+              <%= lessons[i].lessons[j].name %>
+            </p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</div>

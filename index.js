@@ -83,12 +83,36 @@ app.get("/courses/:id", async (req, res) => {
   }
 
   if (course) {
-    res.status(200).render("coursePage", { lessons });
+    res.status(200).render("coursePage", { course, lessons });
   } else {
     res.status(404).send("Course not found");
   }
 
   // res.send(lessons);
+});
+
+//Serve the video
+app.get("/video/:path", async (req, res) => {
+  const range = req.headers.range;
+  if (!range) {
+      res.status(400).send("Requires Range header");
+  }
+  const videoPath = req.params.path;
+  console.log(videoPath);
+  const videoSize = fs.statSync(videoPath.path).size;
+  const CHUNK_SIZE = 10 ** 6;
+  const start = Number(range.replace(/\D/g, ""));
+  const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
+  const contentLength = end - start + 1;
+  const headers = {
+      "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": contentLength,
+      "Content-Type": "video/mp4",
+  };
+  res.writeHead(206, headers);
+  const videoStream = fs.createReadStream(videoPath, { start, end });
+  videoStream.pipe(res);
 });
 
 app.get("/scan", async (req, res) => {
@@ -174,13 +198,11 @@ app.post("/progress", async (req, res) => {
 
 app.get("/rescan", async (req, res) => {
   //Delete database for rescanning
-  //!WARNING! This will also destroy the progress in each course
-  //TODO: Make a seperate table for progress and link it to the lesson instead of storing it in the lesson
   await Course.deleteMany({});
   await Chapter.deleteMany({});
   await Lesson.deleteMany({});
 
-  //Progress should be deleted only when the user wants to reset their progress
+  //Progress deletion is optional
   if (req.query.progress == "true"){
     await Progress.deleteMany({});
   }

@@ -2,11 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Course page</title>
-  <link rel="stylesheet" href="../assets/css/bootstrap.min.css">
+  <title><%= course.name %></title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
 </head>
 <body>
-  <% for (let chapter of lessons){ %>
+  <div class="container-fluid bg-secondary p-0">
+    <div class="row gx-0">
+      <div class="col-9">
+        <!-- Video container -->
+        <div class="ratio ratio-16x9">
+          <!-- HTML video -->
+          <video controls>
+            <source src="/video/assets/courses/[ DevCourseWeb.com ] Udemy - Introduction to Node-RED/01 - Introduction to Node-RED/001 Introduction to the course.mp4" type="video/mp4">
+          </video>
+        </div>
+      </div>
+      <div class="col-3">
+        <%- include("./partials/accordion", { lessons }) %>
+      </div>
+    </div>
+  </div>
+
+  <!-- <% for (let chapter of lessons){ %>
     <h1><%= chapter.chapter %></h1>
     <% for (let lesson of chapter["lessons"]){ %>
       <h2>
@@ -21,6 +38,8 @@
         <%= lesson.name %>
       </h2>
     <% } %>
-  <% } %>
+  <% } %> -->
+  <script src="/js/coursePage.js"></script>
+  <script src="/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
