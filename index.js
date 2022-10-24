@@ -92,14 +92,18 @@ app.get("/courses/:id", async (req, res) => {
 });
 
 //Serve the video
-app.get("/video/:path", async (req, res) => {
+app.get("/video/:lessonid", async (req, res) => {
+  const lessonPath = await Lesson.findOne({_id: req.params.lessonid});
   const range = req.headers.range;
   if (!range) {
-      res.status(400).send("Requires Range header");
+    return res.status(400).send("Requires Range header" + "\n" + lessonPath.path);
   }
-  const videoPath = req.params.path;
+
+  console.log(lessonPath.path);
+  const videoPath = "assets/" + lessonPath.path;
   console.log(videoPath);
-  const videoSize = fs.statSync(videoPath.path).size;
+  const videoSize = fs.statSync(videoPath).size;
+  console.log(videoSize);
   const CHUNK_SIZE = 10 ** 6;
   const start = Number(range.replace(/\D/g, ""));
   const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
@@ -113,9 +117,15 @@ app.get("/video/:path", async (req, res) => {
   res.writeHead(206, headers);
   const videoStream = fs.createReadStream(videoPath, { start, end });
   videoStream.pipe(res);
+  res.send("Hi")
 });
 
 app.get("/scan", async (req, res) => {
+  //Create courses folder if it doesn't exist
+  if (!fs.existsSync(coursesPath)){
+    fs.mkdirSync(coursesPath);
+  }
+
   //Return a list of folders in the courses folder
   const courses = fs.readdirSync(coursesPath, { withFileTypes: true})
   .filter(dirent => dirent.isDirectory())

@@ -12,7 +12,8 @@
         <div class="accordion-body">
           <!-- Lessons go here -->
           <% for (let j=0; j < lessons[i].lessons.length; j++){ %>
-            <p>
+            <% const currentSource = "/video/" + lessons[i].lessons[j]._id %>
+            <p onclick="setSource('<%= currentSource %>')" >
               <% if (lessons[i].lessons[j].progress >= (lessons[i].lessons[j].length - 15)){ %>
                 ✔️
               <% } else if (lessons[i].lessons[j].progress > 5){ %>
