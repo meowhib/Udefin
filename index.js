@@ -49,7 +49,7 @@ app.get("/courses", async (req, res) => {
 
 app.get("/courses/:id", async (req, res) => {
   const course = await Course.findOne({name: req.params.id});
-  const chapters = await Chapter.find({course: course._id}).sort({path: 1});
+  const chapters = await Chapter.find({course: course.id}).sort({path: 1});
 
   var lessons = [];
   let chapterLessons = null;
@@ -99,11 +99,8 @@ app.get("/video/:lessonid", async (req, res) => {
     return res.status(400).send("Requires Range header" + "\n" + lessonPath.path);
   }
 
-  console.log(lessonPath.path);
   const videoPath = "assets/" + lessonPath.path;
-  console.log(videoPath);
   const videoSize = fs.statSync(videoPath).size;
-  console.log(videoSize);
   const CHUNK_SIZE = 10 ** 6;
   const start = Number(range.replace(/\D/g, ""));
   const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
@@ -117,7 +114,6 @@ app.get("/video/:lessonid", async (req, res) => {
   res.writeHead(206, headers);
   const videoStream = fs.createReadStream(videoPath, { start, end });
   videoStream.pipe(res);
-  res.send("Hi")
 });
 
 app.get("/scan", async (req, res) => {
@@ -194,15 +190,17 @@ app.get("/scan", async (req, res) => {
 app.get("/progress", async (req, res) => {
   const progress = await Progress.find({});
 
+  console.log("Got progress as /GET");
   res.send(progress);
 })
 
 app.post("/progress", async (req, res) => {
-  const lesson = req.body.lesson;
-  const progress = req.body.progress;
+  const lesson = req.query.lessonId;
+  const progress = req.query.progress;
 
   await Progress.findOneAndUpdate({lesson: lesson}, {progress: progress});
 
+  console.log("Progress updated!" + lesson + " " + progress);
   res.send("Progress updated");
 });
 
