@@ -48,8 +48,15 @@ app.get("/courses", async (req, res) => {
 });
 
 app.get("/courses/:id", async (req, res) => {
+  //!Warning: Should check if the course exists and then start the rest of the code
   const course = await Course.findOne({name: req.params.id});
-  const chapters = await Chapter.find({course: course.id}).sort({path: 1});
+  
+  if (!course) {
+    return res.redirect("/courses");
+  }
+
+  const chapters = await Chapter.find({course: course._id}).sort({path: 1});
+
 
   var lessons = [];
   let chapterLessons = null;
@@ -64,16 +71,20 @@ app.get("/courses/:id", async (req, res) => {
         let lessonWithProgress = null;
 
         for (let lesson of lessons){
-          const progress = await Progress.findOne({lesson: lesson._id}, {progress: 1, length: 1});
-          lessonWithProgress = {
-            "_id": lesson._id,
-            "name": lesson.name,
-            "path": lesson.path,
-            "chapter": lesson.chapter,
-            "length": progress.length,
-            "progress": progress.progress
-          }
-          lessonsWithProgress.push(lessonWithProgress);
+          const progress = await Progress.findOne({lesson: lesson._id}, {progress: 1, length: 1})
+          .then((progress) => {
+            if (progress){
+              lessonWithProgress = {
+                "_id": lesson._id,
+                "name": lesson.name,
+                "path": lesson.path,
+                "chapter": lesson.chapter,
+                "length": progress.length,
+                "progress": progress.progress
+              }
+              lessonsWithProgress.push(lessonWithProgress);
+            }
+          })
         }
         return lessonsWithProgress;
       })
@@ -123,12 +134,15 @@ app.get("/scan", async (req, res) => {
   }
 
   //Return a list of folders in the courses folder
+  console.log("Scanning for courses...");
   const courses = fs.readdirSync(coursesPath, { withFileTypes: true})
   .filter(dirent => dirent.isDirectory())
   .map(dirent => dirent.name);
+  console.log("Found " + courses.length + " courses");
   
   //Loop through the courses and add them to the database
   courses.forEach(course => {
+    console.log("🔍 Scanning " + course + "...");
     const newCourse = new Course({
       name: urlFriendly(course),
       path: "/courses/" + course,
@@ -136,12 +150,15 @@ app.get("/scan", async (req, res) => {
     });
     
     //Save the course to the database
+    console.log("✔ Saving " + course + " to the database...");
     newCourse.save();
     
     //Get a list of chapters in the course folder
+    console.log("🔍 Scanning for chapters in " + course + "...");
     const chapters = fs.readdirSync('./assets/courses/' + course, { withFileTypes: true})
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
+    console.log("✔ Found " + chapters.length + " chapters in " + course);
 
     chapters.forEach(async chapter => {
       const newChapter = new Chapter({
@@ -152,10 +169,12 @@ app.get("/scan", async (req, res) => {
       });
       
       //Save the chapter to the database and link it to the course
+      console.log("✔ Saving " + chapter + " to the database...");
       newChapter.save();
       await Course.findByIdAndUpdate(newCourse._id, {$push: {"chapters": newChapter._id}});
 
       //Get a list of lessons in the chapter folder
+      console.log("🔍 Scanning for lessons in " + chapter + "...");
       const lessons = fs.readdirSync('./assets/courses/' + course + "/" + chapter, { withFileTypes: true})
       .filter(dirent => dirent.isFile())
       .filter(dirent => dirent.name.endsWith(".mp4"))
@@ -168,7 +187,9 @@ app.get("/scan", async (req, res) => {
           path: "/courses/" + course + "/" + chapter + "/" + lesson,
           chapter: newChapter._id,
         });
-
+        
+        newLesson.save();
+        //await Chapter.findByIdAndUpdate(newChapter._id, {$push: {"lessons": newLesson._id}});
         //add progress to database
         const newProgress = new Progress({
           lesson: newLesson._id,
@@ -177,7 +198,7 @@ app.get("/scan", async (req, res) => {
         });
 
         //Save the lesson to the database and link it to the chapter
-        newLesson.save();
+        console.log("✔ Saving " + lesson + " to the database...");
         newProgress.save();
         await Chapter.findByIdAndUpdate(newChapter._id, {$push: {"lessons": newLesson._id}})
       });
@@ -198,9 +219,14 @@ app.post("/progress", async (req, res) => {
   const lesson = req.query.lessonId;
   const progress = req.query.progress;
 
-  await Progress.findOneAndUpdate({lesson: lesson}, {progress: progress});
+  try {
+    //Added try catch because it was throwing an error when the progress was zero
+    await Progress.findOneAndUpdate({lesson: lesson}, {progress: progress});
+  } catch {
+    console.log("Failed to update progress");
+  }
 
-  console.log("Progress updated!" + lesson + " " + progress);
+  console.log("Progress updated! " + lesson + " " + progress);
   res.send("Progress updated");
 });
 
