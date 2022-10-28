@@ -135,105 +135,76 @@ app.get("/scan", async (req, res) => {
 
   //Return a list of folders in the courses folder
   console.log("Scanning for courses...");
-  const foundCourses = fs.readdirSync(coursesPath, { withFileTypes: true})
+  const courses = fs.readdirSync(coursesPath, { withFileTypes: true})
   .filter(dirent => dirent.isDirectory())
   .map(dirent => dirent.name);
-  console.log("Found " + foundCourses.length + " courses");
+  console.log("Found " + courses.length + " courses");
   
-  //Loop through the foundCourses and add them to the database
-  for (let course of foundCourses){
+  //Loop through the courses and add them to the database
+  courses.forEach(course => {
     console.log("🔍 Scanning " + course + "...");
     const newCourse = new Course({
       name: urlFriendly(course),
       path: "/courses/" + course,
-      chapters: [],
-      overAllProgress: 0
+      chapters: []
     });
-
-    //Check if the course already exists in the database
-    const courseExists = await Course.findOne({name: newCourse.name});
-    if (!courseExists){
-      await newCourse.save();
-      console.log("📁 Added " + course + " to the database");
-    } else {
-      console.log("📁 " + course + " already exists in the database");
-    }
-  }
-
-  
-  const courses = await Course.find({});
-  
-  for (let course of courses){
-    console.log("🔍 Scanning for chapters in " + course.name + "...");
-    const chapters = fs.readdirSync("./assets" + course.path, { withFileTypes: true})
+    
+    //Save the course to the database
+    console.log("✔ Saving " + course + " to the database...");
+    newCourse.save();
+    
+    //Get a list of chapters in the course folder
+    console.log("🔍 Scanning for chapters in " + course + "...");
+    const chapters = fs.readdirSync('./assets/courses/' + course, { withFileTypes: true})
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
-    console.log("Found " + chapters.length + " chapters");
+    console.log("✔ Found " + chapters.length + " chapters in " + course);
 
-    for (let chapter of chapters){
+    chapters.forEach(async chapter => {
       const newChapter = new Chapter({
-        name: capitalize(urlFriendly(chapter.replace(/^[0-9- \.]+/, ''))),
-        path: course.path + "/" + chapter,
-        lessons: [],
-        course: course._id
+        name: capitalize(urlFriendly(chapter.replace(/^[0-9- \.]+/, '').replace(".mp4", ""))),
+        path: "/courses/" + course + "/" + chapter,
+        course: newCourse._id,
+        lessons: []
       });
+      
+      //Save the chapter to the database and link it to the course
+      console.log("✔ Saving " + chapter + " to the database...");
+      newChapter.save();
+      await Course.findByIdAndUpdate(newCourse._id, {$push: {"chapters": newChapter._id}});
 
-      const chapterExists = await Chapter.findOne({name: newChapter.name});
-      if (!chapterExists){
-        //Save chapter to the database and add its id to the course chapters array
-        await newChapter.save();
-        await Course.updateOne({name: course.name}, {$push: {chapters: newChapter._id}});
-        console.log("📁 Added " + chapter + " to the database");
-      } else {
-        console.log("📁 " + chapter + " already exists in the database");
-      }
-    }
-  }
-
-  for (let course of courses){
-    console.log("🔍 Scanning for lessons in " + course.name + "...");
-    const chapters = await Chapter.find({course: course._id});
-    for (let chapter of chapters){
-      console.log(chapter.path);
-      const lessons = fs.readdirSync("./assets" + chapter.path, { withFileTypes: true})
+      //Get a list of lessons in the chapter folder
+      console.log("🔍 Scanning for lessons in " + chapter + "...");
+      const lessons = fs.readdirSync('./assets/courses/' + course + "/" + chapter, { withFileTypes: true})
       .filter(dirent => dirent.isFile())
       .filter(dirent => dirent.name.endsWith(".mp4"))
       .map(dirent => dirent.name);
-      console.log("Found " + lessons.length + " lessons");
 
-      for (let lesson of lessons){
+      //Loop through the lessons and add them to the database
+      lessons.forEach(async lesson => {
         const newLesson = new Lesson({
           name: capitalize(urlFriendly(lesson.replace(/^[0-9- \.]+/, '').replace(".mp4", ""))),
-          path: course.path + "/" + chapter.name + "/" + lesson,
-          chapter: chapter._id
+          path: "/courses/" + course + "/" + chapter + "/" + lesson,
+          chapter: newChapter._id,
         });
         
-        const lessonExists = await Lesson.findOne({name: newLesson.name});
-        if (!lessonExists){
-          await newLesson.save();
-          await Chapter.updateOne({name: chapter.name}, {$push: {lessons: newLesson._id}});
-          console.log("📜 Added " + lesson + " to the database");
-        } else {
-          console.log("📜 " + lesson + " already exists in the database");
-        }
+        newLesson.save();
+        //await Chapter.findByIdAndUpdate(newChapter._id, {$push: {"lessons": newLesson._id}});
+        //add progress to database
+        const newProgress = new Progress({
+          lesson: newLesson._id,
+          length: await getVideoDurationInSeconds('./assets/courses/' + course + "/" + chapter + "/" + lesson),
+          progress: 0
+        });
 
-        // const newProgres = new Progress({
-        //   lesson: newLesson._id,
-        //   length: await getVideoDurationInSeconds("./assets" + newLesson.path),
-        //   progress: 0
-        // });
-
-        // const progressExists = await Progress.findOne({lesson: newLesson._id});
-        // if (!progressExists){
-        //   await newProgres.save();
-        //   console.log("📊 Added progress for " + lesson);
-        // } else {
-        //   console.log("📊 Progress for " + lesson + " already exists");
-        // }
-      }
-    }
-  }
-
+        //Save the lesson to the database and link it to the chapter
+        console.log("✔ Saving " + lesson + " to the database...");
+        newProgress.save();
+        await Chapter.findByIdAndUpdate(newChapter._id, {$push: {"lessons": newLesson._id}})
+      });
+    });
+  })
+  
   res.redirect("/courses");
 });
 
