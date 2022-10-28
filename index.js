@@ -48,7 +48,6 @@ app.get("/courses", async (req, res) => {
 });
 
 app.get("/courses/:id", async (req, res) => {
-  //!Warning: Should check if the course exists and then start the rest of the code
   const course = await Course.findOne({name: req.params.id});
   
   if (!course) {
@@ -56,7 +55,7 @@ app.get("/courses/:id", async (req, res) => {
   }
 
   const chapters = await Chapter.find({course: course._id}).sort({path: 1});
-
+  console.log("Chapters found" + chapters);
 
   var lessons = [];
   let chapterLessons = null;
@@ -81,6 +80,16 @@ app.get("/courses/:id", async (req, res) => {
                 "chapter": lesson.chapter,
                 "length": progress.length,
                 "progress": progress.progress
+              }
+              lessonsWithProgress.push(lessonWithProgress);
+            } else {
+              lessonWithProgress = {
+                "_id": lesson._id,
+                "name": lesson.name,
+                "path": lesson.path,
+                "chapter": lesson.chapter,
+                "length": 0,
+                "progress": 0
               }
               lessonsWithProgress.push(lessonWithProgress);
             }
@@ -110,7 +119,7 @@ app.get("/video/:lessonid", async (req, res) => {
     return res.status(400).send("Requires Range header" + "\n" + lessonPath.path);
   }
 
-  const videoPath = "assets/" + lessonPath.path;
+  const videoPath = "./assets" + lessonPath.path;
   const videoSize = fs.statSync(videoPath).size;
   const CHUNK_SIZE = 10 ** 6;
   const start = Number(range.replace(/\D/g, ""));
@@ -204,7 +213,7 @@ app.get("/scan", async (req, res) => {
       for (let lesson of lessons){
         const newLesson = new Lesson({
           name: capitalize(urlFriendly(lesson.replace(/^[0-9- \.]+/, '').replace(".mp4", ""))),
-          path: course.path + "/" + chapter.name + "/" + lesson,
+          path: chapter.path + "/" + lesson,
           chapter: chapter._id
         });
         
@@ -217,19 +226,30 @@ app.get("/scan", async (req, res) => {
           console.log("📜 " + lesson + " already exists in the database");
         }
 
-        // const newProgres = new Progress({
-        //   lesson: newLesson._id,
-        //   length: await getVideoDurationInSeconds("./assets" + newLesson.path),
-        //   progress: 0
-        // });
+        let newProgress = null;
 
-        // const progressExists = await Progress.findOne({lesson: newLesson._id});
-        // if (!progressExists){
-        //   await newProgres.save();
-        //   console.log("📊 Added progress for " + lesson);
-        // } else {
-        //   console.log("📊 Progress for " + lesson + " already exists");
-        // }
+        try {
+          newProgress = new Progress({
+            lesson: newLesson._id,
+            length: await getVideoDurationInSeconds("./assets" + newLesson.path),
+            progress: 0
+          });
+        } catch (error) {
+          newProgress = new Progress({
+            lesson: newLesson._id,
+            length: -1,
+            progress: 0
+          });
+          console.log(error);
+        }
+
+        const progressExists = await Progress.findOne({lesson: newLesson._id});
+        if (!progressExists){
+          await newProgress.save();
+          console.log("📊 Added progress for " + lesson);
+        } else {
+          console.log("📊 Progress for " + lesson + " already exists");
+        }
       }
     }
   }
