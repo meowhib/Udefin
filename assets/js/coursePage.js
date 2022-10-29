@@ -1,3 +1,5 @@
+var video = document.getElementById("video");
+
 //Changes the video based on the given lessonId
 function setSource(src){
   //Fetch lesson data
@@ -48,4 +50,5 @@ function isPlaying(video) {
   return !!(video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2);
 }
 
-const interval = setInterval(updateProgress, 5000);
+//Updates the progress when the video position changes
+video.addEventListener("timeupdate", updateProgress);

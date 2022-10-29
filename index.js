@@ -55,7 +55,6 @@ app.get("/courses/:id", async (req, res) => {
   }
 
   const chapters = await Chapter.find({course: course._id}).sort({path: 1});
-  console.log("Chapters found" + chapters);
 
   var lessons = [];
   let chapterLessons = null;
@@ -203,7 +202,6 @@ app.get("/scan", async (req, res) => {
     console.log("🔍 Scanning for lessons in " + course.name + "...");
     const chapters = await Chapter.find({course: course._id});
     for (let chapter of chapters){
-      console.log(chapter.path);
       const lessons = fs.readdirSync("./assets" + chapter.path, { withFileTypes: true})
       .filter(dirent => dirent.isFile())
       .filter(dirent => dirent.name.endsWith(".mp4"))
@@ -240,7 +238,7 @@ app.get("/scan", async (req, res) => {
             length: -1,
             progress: 0
           });
-          console.log(error);
+          console.log("❌ Couldn't get the duration of " + newLesson.name);
         }
 
         const progressExists = await Progress.findOne({lesson: newLesson._id});
@@ -260,7 +258,6 @@ app.get("/scan", async (req, res) => {
 app.get("/progress", async (req, res) => {
   const progress = await Progress.find({});
 
-  console.log("Got progress as /GET");
   res.send(progress);
 })
 
