@@ -1,4 +1,4 @@
-//Sets the video source to the given path
+//Changes the video based on the given lessonId
 function setSource(src){
   //Fetch lesson data
   fetch("/lesson/" + src.split("/")[src.split("/").length - 1])
@@ -6,25 +6,25 @@ function setSource(src){
     return response.json();
   })
   .then((data) => {
-    console.log(data);
+    var source = document.getElementById("videoSource");
+    var video = document.getElementById("video");
+    var sourceText = document.getElementById("sourceText");
+    var videoTitle = document.getElementById("videoTitle");
+    videoSource.setAttribute("src", src);
+    videoSource.setAttribute('type', 'video/mp4');
+    video.load();
+    video.play();
+    videoTitle.innerHTML = data.lesson.name;
+    video.currentTime = data.progress.progress;
   });
-
-  var source = document.getElementById("videoSource");
-  var video = document.getElementById("video");
-  var sourceText = document.getElementById("sourceText");
-  var videoTitle = document.getElementById("videoTitle");
-  videoSource.setAttribute("src", src);
-  videoSource.setAttribute('type', 'video/mp4');
-  video.load();
-  video.play();
-  videoTitle.innerHTML = data.lesson.name;
 }
 
 function updateProgress(){
   //send post request to /progress with the given progress
   const videoSource = document.getElementById("videoSource").src;
 
-  if (videoSource != ""){
+  //Only send progress if the video is playing
+  if (videoSource != "" && isPlaying(document.getElementById("video"))){
     const video = document.getElementById("video");
     const lessonId = videoSource.split("/")[videoSource.split("/").length - 1];
     const currentTime = Math.round(video.currentTime);
@@ -41,6 +41,11 @@ function updateProgress(){
       })
     })
   }
+}
+
+//Checls if the video is playing
+function isPlaying(video) {
+  return !!(video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2);
 }
 
 const interval = setInterval(updateProgress, 5000);

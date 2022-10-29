@@ -296,14 +296,10 @@ app.get("/lesson/:id", async (req, res) => {
   const lesson = await Lesson.findById(req.params.id);
   const progress = await Progress.findOne({lesson: lesson._id});
 
-  const data = {
+  res.send({
     lesson: lesson,
     progress: progress
-  }
-
-  console.log(data);
-
-  res.send(data);
+  });
 });
 
 app.get("/progress", async (req, res) => {
