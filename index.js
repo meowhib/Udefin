@@ -47,6 +47,10 @@ app.get("/courses", async (req, res) => {
   res.render('coursesPage', {courses});
 });
 
+app.get("/courses/:id/edit", async (req, res) => {
+  
+});
+
 app.get("/courses/:id", async (req, res) => {
   const course = await Course.findOne({name: req.params.id});
   
