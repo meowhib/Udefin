@@ -16,7 +16,8 @@ function setSource(src){
     videoSource.setAttribute('type', 'video/mp4');
     video.load();
     video.play();
-    videoTitle.innerHTML = data.lesson.name;
+    // videoTitle.innerHTML = data.lesson.name;
+    console.log(data.progress.progress);
     video.currentTime = data.progress.progress;
   });
 }

@@ -1,22 +1,17 @@
 <%- layout('layouts/boilerplate') %>
 <div class="container-fluid p-0">
   <div class="row gx-0">
-    <div class="col-lg-9 col-sm-12">
-      <!-- Video container -->
-      <div class="video-container">
-        <div class="ratio ratio-16x9">
-          <!-- HTML video -->
+      <div class="col-xl-7" style="margin-bottom: 32px;">
+        <div class="video-container ratio ratio-16x9 bg-primary">
           <video id="video" controls autoplay>
             <source id="videoSource" src="" type="video/mp4">
           </video>
         </div>
-        <div class="video-info p-4">
-          <h1 id="videoTitle"></h1>
-        </div>
       </div>
-    </div>
-    <div class="col-lg-3 col-sm-12">
-      <%- include("./partials/accordion", { lessons }) %>
-    </div>
+      <div class="col" style="width: 100vh;">
+        <%- include("./partials/accordion", { lessons }) %>
+      </div>
   </div>
 </div>
+
+<script src="/js/coursePage.js"></script>

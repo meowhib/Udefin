@@ -265,6 +265,7 @@ app.get("/scan", async (req, res) => {
     }
   }
 
+  res.send("🚀 Scanning complete!");
   res.redirect("/courses");
 });
 
