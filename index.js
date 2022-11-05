@@ -139,6 +139,12 @@ app.get("/video/:lessonid", async (req, res) => {
   videoStream.pipe(res);
 });
 
+app.get("/scancourse/:courseid", async (req, res) => {
+  const course = await Course.findOne({_id: req.params.courseid});
+  const coursePath = coursesPath + "/" + course.name;
+  return res.send(coursePath);
+});
+
 app.get("/scan", async (req, res) => {
   //Create courses folder if it doesn't exist
   if (!fs.existsSync(coursesPath)){
