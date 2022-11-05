@@ -1,34 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title><%= course.name %></title>
-  <link rel="stylesheet" href="/css/bootstrap.min.css">
-</head>
-<body>
-  <div class="container-fluid p-0">
-    <div class="row gx-0">
-      <div class="col-lg-9 col-sm-12">
-        <!-- Video container -->
-        <div class="video-container">
-          <div class="ratio ratio-16x9">
-            <!-- HTML video -->
-            <video id="video" controls autoplay>
-              <source id="videoSource" src="" type="video/mp4">
-            </video>
-          </div>
-          <div class="video-info p-4">
-            <h1 id="videoTitle"></h1>
-          </div>
+<%- layout('layouts/boilerplate') %>
+<div class="container-fluid p-0">
+  <div class="row gx-0">
+    <div class="col-lg-9 col-sm-12">
+      <!-- Video container -->
+      <div class="video-container">
+        <div class="ratio ratio-16x9">
+          <!-- HTML video -->
+          <video id="video" controls autoplay>
+            <source id="videoSource" src="" type="video/mp4">
+          </video>
+        </div>
+        <div class="video-info p-4">
+          <h1 id="videoTitle"></h1>
         </div>
       </div>
-      <div class="col-lg-3 col-sm-12">
-        <%- include("./partials/accordion", { lessons }) %>
-      </div>
+    </div>
+    <div class="col-lg-3 col-sm-12">
+      <%- include("./partials/accordion", { lessons }) %>
     </div>
   </div>
-
-  <script src="/js/coursePage.js"></script>
-  <script src="/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+</div>

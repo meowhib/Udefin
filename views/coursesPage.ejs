@@ -1,11 +1,2 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Courses</title>
-    <link rel="stylesheet" href="/css/bootstrap.min.css">
-  </head>
-  <body>
-    <%- include("./partials/courses-component", {courses}) %>
-    <script src="/js/bootstrap.bundle.min.js"></script>
-  </body>
-</html>
+<%- layout('layouts/boilerplate')%>
+<%- include("./partials/courses-component", {courses}) %>

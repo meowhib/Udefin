@@ -3,11 +3,13 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const { getVideoDurationInSeconds } = require('get-video-duration')
 const bodyParser = require('body-parser');
+const ejsMate = require('ejs-mate');
 
 const app = express();
 
 //Serve static files
 app.use(express.static('assets'));
+app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -142,7 +144,8 @@ app.get("/video/:lessonid", async (req, res) => {
 app.get("/scancourse/:courseid", async (req, res) => {
   const course = await Course.findOne({_id: req.params.courseid});
   const coursePath = coursesPath + "/" + course.name;
-  return res.send(coursePath);
+
+  //TODO: Scan this course individually
 });
 
 app.get("/scan", async (req, res) => {
