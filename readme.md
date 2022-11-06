@@ -21,9 +21,10 @@ Currently that's the only way to install it, I will make a docker image soon.
 
 ## Upcomming features
 - Take notes from the player itself
+- Imbed resources (pdfs, files) in the accordion
 - Subtitles support
+- Edit course information (name, description, topic, etc...)
 - Show progress of each course in the courses page
-- Modify the name of courses (To remove uploader's name)
 - Automatically/manually change the thumbnail of the course
 - Custom video controls
 - Ability to select folder from which the courses are played (Like Jellyfin libraries)
