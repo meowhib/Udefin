@@ -9,23 +9,25 @@
         </button>
       </h2>
       <div id=<%= "collapse" + i %> class="accordion-collapse collapse" aria-labelledby=<%= "heading" + i %> data-bs-parent="#accordionExample">
-        <div class="accordion-body">
+        <div class="accordion-body p-0">
           <!-- Lessons go here -->
           <% for (let j=0; j < lessons[i].lessons.length; j++){ %>
             <% const currentSource = "/video/" + lessons[i].lessons[j]._id %>
-            <p onclick="setSource('<%= currentSource %>')" >
-              <% if (lessons[i].lessons[j].length == -1) { %>
-                ❌
-              <% } else if (lessons[i].lessons[j].progress >= (lessons[i].lessons[j].length - 15)){ %>
-                ✔️
-              <% } else if (lessons[i].lessons[j].progress > 5){ %>
-                [<%= lessons[i].lessons[j].progress %>]
-                ⬛
-              <% } else { %>
-                ▶️
-              <% } %>
-              <%= lessons[i].lessons[j].name %>
-            </p>
+            <div class="p-3 lesson-card-holder" onclick="setSource('<%= currentSource %>')" >
+              <p class="p-0 m-0">
+                <% if (lessons[i].lessons[j].length == -1) { %>
+                  ❌
+                <% } else if (lessons[i].lessons[j].progress >= (lessons[i].lessons[j].length - 15)){ %>
+                  ✔️
+                <% } else if (lessons[i].lessons[j].progress > 5){ %>
+                  [<%= lessons[i].lessons[j].progress %>]
+                  ⬛
+                <% } else { %>
+                  ▶️
+                <% } %>
+                <%= lessons[i].lessons[j].name %>
+              </p>
+            </div>
           <% } %>
         </div>
       </div>

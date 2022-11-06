@@ -1,0 +1,8 @@
+.lesson-card-holder {
+  cursor: pointer;
+  transition: .2s ease-in-out;
+}
+
+.lesson-card-holder:hover {
+  background-color: #d1d1d1!important;
+}
