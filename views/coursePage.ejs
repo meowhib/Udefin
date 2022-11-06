@@ -1,14 +1,15 @@
 <%- layout('layouts/boilerplate') %>
-<div class="container-fluid p-0">
-  <div class="row gx-0">
-      <div class="col-xl-7" style="margin-bottom: 32px;">
+<%- include('partials/navbar') %>
+<div class="container-fluid">
+  <div class="row">
+      <div class="col-xl-8" style="margin-bottom: 32px;">
         <div class="video-container ratio ratio-16x9 bg-primary">
           <video id="video" controls autoplay>
             <source id="videoSource" src="" type="video/mp4">
           </video>
         </div>
       </div>
-      <div class="col" style="width: 100vh;">
+      <div class="col position-relative overflow-scroll">
         <%- include("./partials/accordion", { lessons }) %>
       </div>
   </div>
