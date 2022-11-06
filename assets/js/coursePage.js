@@ -19,7 +19,28 @@ function setSource(src){
     // videoTitle.innerHTML = data.lesson.name;
     console.log(data.progress.progress);
     video.currentTime = data.progress.progress;
+    video.focus();
   });
+}
+
+function pause(){
+  const video = document.getElementById("video");
+  video.pause();
+}
+
+function play(){
+  const video = document.getElementById("video");
+  video.play();
+}
+
+function forward5Seconds(){
+  const video = document.getElementById("video");
+  video.currentTime += 10;
+}
+
+function backward5Seconds(){
+  const video = document.getElementById("video");
+  video.currentTime -= 10;
 }
 
 function updateProgress(){
@@ -51,5 +72,29 @@ function isPlaying(video) {
   return !!(video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2);
 }
 
+//Event listeners
+
 //Updates the progress when the video position changes
 video.addEventListener("timeupdate", updateProgress);
+
+//Fast forward
+body.addEventListener("keydown", function(e){
+  //If the user presses the right arrow key
+  if (e.keyCode == 39){
+    console.log("Right arrow key pressed");
+    forward5Seconds();
+  }
+  //If the user presses the left arrow key
+  else if (e.keyCode == 37){
+    backward5Seconds();
+  }
+  //If the user presses the space key
+  else if (e.keyCode == 32){
+    e.preventDefault();
+    if (isPlaying(document.getElementById("video"))){
+      pause();
+    } else{
+      play();
+    }
+  }
+});
