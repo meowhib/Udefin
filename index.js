@@ -141,13 +141,6 @@ app.get("/video/:lessonid", async (req, res) => {
   videoStream.pipe(res);
 });
 
-app.get("/scancourse/:courseid", async (req, res) => {
-  const course = await Course.findOne({_id: req.params.courseid});
-  const coursePath = coursesPath + "/" + course.name;
-
-  //TODO: Scan this course individually
-});
-
 app.get("/scan", async (req, res) => {
   //Create courses folder if it doesn't exist
   if (!fs.existsSync(coursesPath)){
@@ -190,6 +183,9 @@ app.get("/scan", async (req, res) => {
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
     console.log("Found " + chapters.length + " chapters");
+    
+    //TODO: Check if the chapter & lesson begin with a number then a dot
+    //TODO: In that case, add a zero in the front for better sorting.
 
     for (let chapter of chapters){
       const newChapter = new Chapter({
@@ -265,7 +261,7 @@ app.get("/scan", async (req, res) => {
     }
   }
 
-  res.send("🚀 Scanning complete!");
+  console.log("🚀 Scanning complete!");
   res.redirect("/courses");
 });
 
