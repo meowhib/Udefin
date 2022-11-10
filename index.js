@@ -168,7 +168,6 @@ app.get("/scan", async (req, res) => {
     console.log("📁 Added " + course + " to the database");
   }
 
-  
   const courses = await Course.find({});
   
   for (let course of courses){
@@ -177,9 +176,6 @@ app.get("/scan", async (req, res) => {
     .filter(dirent => dirent.isDirectory())
     .map(dirent => dirent.name);
     console.log("Found " + chapters.length + " chapters");
-    
-    //TODO: Check if the chapter & lesson begin with a number then a dot
-    //TODO: In that case, add a zero in the front for better sorting.
 
     for (let chapter of chapters){
       console.log(chapter);
@@ -207,6 +203,7 @@ app.get("/scan", async (req, res) => {
       .map(dirent => dirent.name);
       console.log("Found " + lessons.length + " lessons");
 
+
       for (let lesson of lessons){
         const newLesson = new Lesson({
           index: lesson.match(/\d+/) ? parseInt(lesson.match(/\d+/)[0]) : 0,
@@ -215,7 +212,7 @@ app.get("/scan", async (req, res) => {
           chapter: chapter._id
         });
         
-        const lessonExists = await Lesson.findOne({name: newLesson.name});
+        //Saving the lesson to the database
         await newLesson.save();
         await Chapter.updateOne({name: chapter.name}, {$push: {lessons: newLesson._id}});
         console.log("📜 Added " + lesson + " to the database");
@@ -252,6 +249,18 @@ app.get("/scan", async (req, res) => {
   res.redirect("/courses");
 });
 
+//Provides information about the lesson (name, length, progress)
+app.get("/lesson/:id", async (req, res) => {
+  const lesson = await Lesson.findById(req.params.id);
+  const progress = await Progress.findOne({lesson: lesson._id});
+
+  res.send({
+    lesson: lesson,
+    progress: progress
+  });
+});
+
+//Updates the progress of a lesson
 app.post("/progress", async (req, res) => {
   const lesson = req.query.lessonId;
   const progress = req.query.progress;
@@ -267,6 +276,7 @@ app.post("/progress", async (req, res) => {
   res.send("Progress updated");
 });
 
+//Rescans everything
 app.get("/rescan", async (req, res) => {
   //Delete database for rescanning
   await Course.deleteMany({});

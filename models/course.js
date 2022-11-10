@@ -12,6 +12,10 @@ const courseSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  topic: {
+    type: String,
+    default: "Unassigned"
+  }
 });
 
 module.exports = mongoose.model('Course', courseSchema);
