@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const lessonSchema = new mongoose.Schema({
+  index: Number,
   name: String,
   path: String,
   chapter: {

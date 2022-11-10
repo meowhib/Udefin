@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const chapterSchema = new mongoose.Schema({
+  index: Number,
   name: String,
   path: String,
   course: {

@@ -60,16 +60,16 @@ app.get("/courses/:id", async (req, res) => {
     return res.redirect("/courses");
   }
 
-  const chapters = await Chapter.find({course: course._id}).sort({path: 1});
+  let chapters = await Chapter.find({course: course._id}).sort({index: 1});
 
-  var lessons = [];
+  let lessons = [];
   let chapterLessons = null;
 
   //Constructs a JSON object to facilitate the rendering of the lessons
   for (let chapter of chapters){
     chapterLessons = {
       "chapter": chapter.name,
-      "lessons": await Lesson.find({ chapter: { $in: chapter._id }}).sort({path: 1})
+      "lessons": await Lesson.find({ chapter: { $in: chapter._id }}).sort({index: 1})
       .then(async (lessons) => {
         let lessonsWithProgress = [];
         let lessonWithProgress = null;
@@ -153,7 +153,7 @@ app.get("/scan", async (req, res) => {
   .filter(dirent => dirent.isDirectory())
   .map(dirent => dirent.name);
   console.log("Found " + foundCourses.length + " courses");
-  
+
   //Loop through the foundCourses and add them to the database
   for (let course of foundCourses){
     console.log("🔍 Scanning " + course + "...");
@@ -164,14 +164,8 @@ app.get("/scan", async (req, res) => {
       overAllProgress: 0
     });
 
-    //Check if the course already exists in the database
-    const courseExists = await Course.findOne({name: newCourse.name});
-    if (!courseExists){
-      await newCourse.save();
-      console.log("📁 Added " + course + " to the database");
-    } else {
-      console.log("📁 " + course + " already exists in the database");
-    }
+    await newCourse.save();
+    console.log("📁 Added " + course + " to the database");
   }
 
   
@@ -188,22 +182,18 @@ app.get("/scan", async (req, res) => {
     //TODO: In that case, add a zero in the front for better sorting.
 
     for (let chapter of chapters){
+      console.log(chapter);
       const newChapter = new Chapter({
+        index: chapter.match(/\d+/) ? parseInt(chapter.match(/\d+/)[0]) : 0,
         name: capitalize(urlFriendly(chapter.replace(/^[0-9- \.]+/, ''))),
         path: course.path + "/" + chapter,
         lessons: [],
         course: course._id
       });
 
-      const chapterExists = await Chapter.findOne({name: newChapter.name});
-      if (!chapterExists){
-        //Save chapter to the database and add its id to the course chapters array
-        await newChapter.save();
-        await Course.updateOne({name: course.name}, {$push: {chapters: newChapter._id}});
-        console.log("📁 Added " + chapter + " to the database");
-      } else {
-        console.log("📁 " + chapter + " already exists in the database");
-      }
+      await newChapter.save();
+      await Course.updateOne({name: course.name}, {$push: {chapters: newChapter._id}});
+      console.log("📁 Added " + chapter + " to the database");
     }
   }
 
@@ -219,19 +209,16 @@ app.get("/scan", async (req, res) => {
 
       for (let lesson of lessons){
         const newLesson = new Lesson({
+          index: lesson.match(/\d+/) ? parseInt(lesson.match(/\d+/)[0]) : 0,
           name: capitalize(urlFriendly(lesson.replace(/^[0-9- \.]+/, '').replace(".mp4", ""))),
           path: chapter.path + "/" + lesson,
           chapter: chapter._id
         });
         
         const lessonExists = await Lesson.findOne({name: newLesson.name});
-        if (!lessonExists){
-          await newLesson.save();
-          await Chapter.updateOne({name: chapter.name}, {$push: {lessons: newLesson._id}});
-          console.log("📜 Added " + lesson + " to the database");
-        } else {
-          console.log("📜 " + lesson + " already exists in the database");
-        }
+        await newLesson.save();
+        await Chapter.updateOne({name: chapter.name}, {$push: {lessons: newLesson._id}});
+        console.log("📜 Added " + lesson + " to the database");
 
         let newProgress = null;
 
@@ -265,12 +252,6 @@ app.get("/scan", async (req, res) => {
   res.redirect("/courses");
 });
 
-app.get("/progress", async (req, res) => {
-  const progress = await Progress.find({});
-
-  res.send(progress);
-})
-
 app.post("/progress", async (req, res) => {
   const lesson = req.query.lessonId;
   const progress = req.query.progress;
@@ -299,20 +280,6 @@ app.get("/rescan", async (req, res) => {
   res.redirect("/scan");
 });
 
-app.get("/lesson/:id", async (req, res) => {
-  const lesson = await Lesson.findById(req.params.id);
-  const progress = await Progress.findOne({lesson: lesson._id});
-
-  res.send({
-    lesson: lesson,
-    progress: progress
-  });
-});
-
-app.get("/progress", async (req, res) => {
-  res.send(req.query);
-});
-
 app.listen(PORT, () => {
-  console.log(`Example app listening at http://localhost:${PORT}`)
+  console.log(`Udefin app listening at http://localhost:${PORT}`)
 });

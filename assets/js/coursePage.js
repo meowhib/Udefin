@@ -23,6 +23,11 @@ function setSource(src){
   });
 }
 
+function fullscreen(){
+  const video = document.getElementById("video");
+  video.fullscreen();
+}
+
 function pause(){
   const video = document.getElementById("video");
   video.pause();
@@ -87,6 +92,9 @@ body.addEventListener("keydown", function(e){
   //If the user presses the left arrow key
   else if (e.keyCode == 37){
     backward5Seconds();
+  }
+  else if (e.keyCode == 70 || e.keyCode == 102) {
+    fullscreen();
   }
   //If the user presses the space key
   else if (e.keyCode == 32){
