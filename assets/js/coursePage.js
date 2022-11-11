@@ -17,8 +17,8 @@ function setSource(src){
     video.load();
     video.play();
     // videoTitle.innerHTML = data.lesson.name;
-    console.log(data.progress.progress);
-    video.currentTime = data.progress.progress;
+    console.log(data.progress);
+    video.currentTime = data.progress;
     video.focus();
   });
 }
@@ -82,7 +82,7 @@ function isPlaying(video) {
 video.addEventListener("timeupdate", updateProgress);
 
 //Fast forward
-body.addEventListener("keydown", function(e){
+document.body.addEventListener("keydown", function(e){
   //If the user presses the right arrow key
   if (e.keyCode == 39){
     console.log("Right arrow key pressed");
@@ -105,10 +105,3 @@ body.addEventListener("keydown", function(e){
     }
   }
 });
-
-var myModal = document.getElementById('myModal')
-var myInput = document.getElementById('myInput')
-
-myModal.addEventListener('shown.bs.modal', function () {
-  myInput.focus()
-})

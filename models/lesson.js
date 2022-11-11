@@ -12,6 +12,8 @@ const lessonSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Chapter'
   },
+  length: Number,
+  progress: Number
 });
 
 module.exports = mongoose.model('Lesson', lessonSchema);

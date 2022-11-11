@@ -18,12 +18,12 @@
                 <% if (lessons[i].lessons[j].length == -1) { %>
                   ❌
                 <% } else if (lessons[i].lessons[j].progress >= (lessons[i].lessons[j].length - 15)){ %>
-                  ✔️
+                  ✔️ <%= lessons[i].lessons[j].progress %>
                 <% } else if (lessons[i].lessons[j].progress > 5){ %>
                   [<%= lessons[i].lessons[j].progress %>]
                   ⬛
                 <% } else { %>
-                  ▶️
+                 ▶️ <%= lessons[i].lessons[j].progress %>
                 <% } %>
                 <%= lessons[i].lessons[j].name %>
               </p>
