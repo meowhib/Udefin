@@ -4,6 +4,7 @@ const fs = require('fs');
 const { getVideoDurationInSeconds } = require('get-video-duration')
 const bodyParser = require('body-parser');
 const ejsMate = require('ejs-mate');
+const methodOverride = require('method-override');
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(express.static('assets'));
 app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(methodOverride('_method'));
 
 //Conntect to MongoDB
 mongoose.connect('mongodb://localhost:27017/Udefin', {useNewUrlParser: true, useUnifiedTopology: true })
@@ -29,15 +31,6 @@ const Progress = require('./models/progress');
 const PORT = 3000;
 const coursesPath = './assets/courses';
 
-//Functions
-const urlFriendly = (value) => {
-  return value.replace(/[^a-z0-9 _-]/gi, '-').toLowerCase();
-}
-
-const capitalize = (value) => {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 //App
 app.get('/', (req, res) => {
   res.redirect("/courses");
@@ -51,13 +44,18 @@ app.get("/courses", async (req, res) => {
 });
 
 //Renders course edit page
-app.get("/courses/:id/edit", async (req, res) => {
-  
+app.put("/courses/:id", async (req, res) => {
+  const course = await Course.findById(req.params.id);
+  course.name = req.body.name;
+  course.topic = req.body.topic;
+  await course.save();
+  console.log("Course updated");
+  res.redirect("/courses");
 });
 
 //Renders course page
 app.get("/courses/:id", async (req, res) => {
-  const course = await Course.findOne({name: req.params.id});
+  const course = await Course.findOne({id: req.params.id});
   
   if (!course) {
     return res.redirect("/courses");
@@ -162,7 +160,7 @@ app.get("/scan", async (req, res) => {
   for (let course of foundCourses){
     console.log("🔍 Scanning " + course + "...");
     const newCourse = new Course({
-      name: urlFriendly(course).replace(" ", ""),
+      name: course,
       path: "/courses/" + course,
       chapters: [],
       overAllProgress: 0
@@ -185,7 +183,7 @@ app.get("/scan", async (req, res) => {
       console.log(chapter);
       const newChapter = new Chapter({
         index: chapter.match(/\d+/) ? parseInt(chapter.match(/\d+/)[0]) : 0,
-        name: capitalize(urlFriendly(chapter.replace(/^[0-9- \.]+/, ''))),
+        name: chapter,
         path: course.path + "/" + chapter,
         lessons: [],
         course: course._id
@@ -210,7 +208,7 @@ app.get("/scan", async (req, res) => {
       for (let lesson of lessons){
         const newLesson = new Lesson({
           index: lesson.match(/\d+/) ? parseInt(lesson.match(/\d+/)[0]) : 0,
-          name: capitalize(urlFriendly(lesson.replace(/^[0-9- \.]+/, '').replace(".mp4", ""))),
+          name: lesson,
           path: chapter.path + "/" + lesson,
           chapter: chapter._id
         });
