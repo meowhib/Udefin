@@ -210,6 +210,7 @@ app.get("/scan", async (req, res) => {
           index: lesson.match(/\d+/) ? parseInt(lesson.match(/\d+/)[0]) : 0,
           name: lesson,
           path: chapter.path + "/" + lesson,
+          course: course._id,
           chapter: chapter._id
         });
         
@@ -222,12 +223,14 @@ app.get("/scan", async (req, res) => {
 
         try {
           newProgress = new Progress({
+            course: course.id,
             lesson: newLesson._id,
             length: await getVideoDurationInSeconds("./assets" + newLesson.path),
             progress: 0
           });
         } catch (error) {
           newProgress = new Progress({
+            course: course.id,
             lesson: newLesson._id,
             length: -1,
             progress: 0
@@ -289,27 +292,40 @@ app.get("/progress/:courseid", async (req, res) => {
 
 //Updates the progress of a lesson
 app.post("/progress", async (req, res) => {
-  const lesson = req.query.lessonId;
-  const progress = req.query.progress;
+  const lessonId = req.query.lessonId;
+  const newProgress = req.query.progress;
+  const lesson = await Lesson.findById(lessonId);
+  const progress = await Progress.findOne({lesson: lesson.id});
+  const course = await Course.findById(lesson.course);
 
   try {
     //Added try catch because it was throwing an error when the progress was zero
-    await Progress.findOneAndUpdate({lesson: lesson}, {progress: progress});
-    //Find all lessons with a progress that is equal or length - 15 seconds
-    //of the lessons length
-    const finishedLessons = await Progress.find({progress: {$gte: {$subtract: ["$length", 15]}}});
-    const lessons = await Lesson.find({});
+    await Progress.findOneAndUpdate({lesson: lessonId}, {progress: newProgress});
+    console.log("📊 Updated progress for " + lesson.name + " to " + newProgress + " out of " + progress.length);
 
-    //Calculate percentage of finished lessons
-    const percentage = Math.round((finishedLessons.length / lessons.length) * 100);
+    //Update the overall progress when the lesson is completed
+    if (newProgress >= progress.length - 15){
+      //Find all lessons with a progress that is equal or length - 15 seconds
+      //of the lessons length
+      const finishedLessons = await Progress.find({course: course.id, progress: {$gte: progress.length - 15}});
+      console.log(finishedLessons)
+      const lessons = await Lesson.find({course: course.id});
 
-    //Update the overall progress of the course
-    await Course.findOneAndUpdate({name: req.query.courseName}, {overAllProgress: percentage});
+      //Calculate percentage of finished lessons
+      console.log("📊 " + finishedLessons.length + " out of " + lessons.length + " lessons are finished");
+      const percentage = Math.round((finishedLessons.length / lessons.length) * 100);
+
+      console.log("Percentage of finished lessons: " + percentage + "%");
+
+      //Update the overall progress of the course
+      await Course.findOneAndUpdate({id: course.id}, {overAllProgress: percentage});
+      console.log("📊 " + lesson.name + " completed!");
+      console.log("------------------------------------");
+    }
   } catch {
     console.log("Failed to update progress");
   }
 
-  console.log("Progress updated! " + lesson + " " + progress);
   res.send("Progress updated");
 });
 

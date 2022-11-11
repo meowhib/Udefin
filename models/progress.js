@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const progressSchema = new mongoose.Schema({
+  course: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course'
+  },
   lesson: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Lesson'
