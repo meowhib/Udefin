@@ -43,16 +43,19 @@ app.get('/', (req, res) => {
   res.redirect("/courses");
 });
 
+//Renders courses page
 app.get("/courses", async (req, res) => {
   const courses = await Course.find({});
   
   res.render('coursesPage', {courses});
 });
 
+//Renders course edit page
 app.get("/courses/:id/edit", async (req, res) => {
   
 });
 
+//Renders course page
 app.get("/courses/:id", async (req, res) => {
   const course = await Course.findOne({name: req.params.id});
   
@@ -61,7 +64,6 @@ app.get("/courses/:id", async (req, res) => {
   }
 
   let chapters = await Chapter.find({course: course._id}).sort({index: 1});
-
   let lessons = [];
   let chapterLessons = null;
 
@@ -142,6 +144,8 @@ app.get("/video/:lessonid", async (req, res) => {
 });
 
 app.get("/scan", async (req, res) => {
+  const startTime = new Date().getTime();
+
   //Create courses folder if it doesn't exist
   if (!fs.existsSync(coursesPath)){
     fs.mkdirSync(coursesPath);
@@ -158,7 +162,7 @@ app.get("/scan", async (req, res) => {
   for (let course of foundCourses){
     console.log("🔍 Scanning " + course + "...");
     const newCourse = new Course({
-      name: urlFriendly(course),
+      name: urlFriendly(course).replace(" ", ""),
       path: "/courses/" + course,
       chapters: [],
       overAllProgress: 0
@@ -203,7 +207,6 @@ app.get("/scan", async (req, res) => {
       .map(dirent => dirent.name);
       console.log("Found " + lessons.length + " lessons");
 
-
       for (let lesson of lessons){
         const newLesson = new Lesson({
           index: lesson.match(/\d+/) ? parseInt(lesson.match(/\d+/)[0]) : 0,
@@ -245,7 +248,9 @@ app.get("/scan", async (req, res) => {
     }
   }
 
+  const endTime = new Date().getTime();
   console.log("🚀 Scanning complete!");
+  console.log("🕒 Took " + (endTime - startTime) / 1000 + " seconds");
   res.redirect("/courses");
 });
 
@@ -260,6 +265,30 @@ app.get("/lesson/:id", async (req, res) => {
   });
 });
 
+app.get("/progress/:courseid", async (req, res) => {
+  const course = await Course.findById(req.params.courseid);
+  const chapters = await Chapter.find({course: course._id});
+  let progress = 0;
+  let total = 0;
+
+  for (let chapter of chapters){
+    const lessons = await Lesson.find({chapter: chapter._id});
+    for (let lesson of lessons){
+      const lessonProgress = await Progress.findOne({lesson: lesson._id});
+      if (lessonProgress.length > 0){
+        progress += lessonProgress.progress;
+        total += lessonProgress.length;
+      }
+    }
+  }
+
+  res.send({
+    progress: progress,
+    total: total,
+    percentage: Math.round(progress / total * 100)
+  });
+});
+
 //Updates the progress of a lesson
 app.post("/progress", async (req, res) => {
   const lesson = req.query.lessonId;
@@ -268,6 +297,16 @@ app.post("/progress", async (req, res) => {
   try {
     //Added try catch because it was throwing an error when the progress was zero
     await Progress.findOneAndUpdate({lesson: lesson}, {progress: progress});
+    //Find all lessons with a progress that is equal or length - 15 seconds
+    //of the lessons length
+    const finishedLessons = await Progress.find({progress: {$gte: {$subtract: ["$length", 15]}}});
+    const lessons = await Lesson.find({});
+
+    //Calculate percentage of finished lessons
+    const percentage = Math.round((finishedLessons.length / lessons.length) * 100);
+
+    //Update the overall progress of the course
+    await Course.findOneAndUpdate({name: req.query.courseName}, {overAllProgress: percentage});
   } catch {
     console.log("Failed to update progress");
   }
