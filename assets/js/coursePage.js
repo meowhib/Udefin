@@ -8,15 +8,13 @@ function setSource(src){
     return response.json();
   })
   .then((data) => {
-    var source = document.getElementById("videoSource");
     var video = document.getElementById("video");
-    var sourceText = document.getElementById("sourceText");
     var videoTitle = document.getElementById("videoTitle");
     videoSource.setAttribute("src", src);
     videoSource.setAttribute('type', 'video/mp4');
     video.load();
     video.play();
-    // videoTitle.innerHTML = data.lesson.name;
+    videoTitle.innerHTML = data.name;
     console.log(data.progress);
     video.currentTime = data.progress;
     video.focus();
@@ -56,6 +54,7 @@ function updateProgress(){
   if (videoSource != "" && isPlaying(document.getElementById("video"))){
     const video = document.getElementById("video");
     const lessonId = videoSource.split("/")[videoSource.split("/").length - 1];
+    console.log(lessonId);
     const currentTime = Math.round(video.currentTime);
     
     //Send the progress to the server
@@ -71,7 +70,7 @@ function updateProgress(){
   }
 }
 
-//Checls if the video is playing
+//Checks if the video is playing
 function isPlaying(video) {
   return !!(video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2);
 }
@@ -80,28 +79,3 @@ function isPlaying(video) {
 
 //Updates the progress when the video position changes
 video.addEventListener("timeupdate", updateProgress);
-
-//Fast forward
-document.body.addEventListener("keydown", function(e){
-  //If the user presses the right arrow key
-  if (e.keyCode == 39){
-    console.log("Right arrow key pressed");
-    forward5Seconds();
-  }
-  //If the user presses the left arrow key
-  else if (e.keyCode == 37){
-    backward5Seconds();
-  }
-  else if (e.keyCode == 70 || e.keyCode == 102) {
-    fullscreen();
-  }
-  //If the user presses the space key
-  else if (e.keyCode == 32){
-    e.preventDefault();
-    if (isPlaying(document.getElementById("video"))){
-      pause();
-    } else{
-      play();
-    }
-  }
-});

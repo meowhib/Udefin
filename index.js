@@ -25,7 +25,6 @@ mongoose.connect('mongodb://localhost:27017/Udefin', {useNewUrlParser: true, use
 const Course = require('./models/course');
 const Chapter = require('./models/chapter');
 const Lesson = require('./models/lesson');
-const Progress = require('./models/progress');
 
 //Constants
 const PORT = 3000;
@@ -40,34 +39,51 @@ app.get('/', (req, res) => {
 app.get("/courses", async (req, res) => {
   const courses = await Course.find({});
   
+  for (let i = 0; i < courses.length; i++){
+    let lessons = await Lesson.find({course: courses[i].id});
+    let lessonsCount = lessons.length;
+    let completedLessonsCount = 0;
+    
+    for (let lesson of lessons){
+      if (lesson.length && lesson.progress >= lesson.length - 15){
+        completedLessonsCount++;
+      }
+    }
+
+    courses[i].completedLessonsCount = completedLessonsCount;
+    courses[i].lessonsCount = lessonsCount;
+  }
+
   res.render('coursesPage', {courses});
 });
 
 //Renders course edit page
 app.put("/courses/:id", async (req, res) => {
   const course = await Course.findById(req.params.id);
+
   course.name = req.body.name;
   course.topic = req.body.topic;
+  
   await course.save();
-  console.log("Course updated");
+
   res.redirect("/courses");
 });
 
 //Renders course page
 app.get("/courses/:id", async (req, res) => {
-  const course = await Course.findOne({id: req.params.id});
+  const course = await Course.findById(req.params.id);
   
   if (!course) {
     return res.redirect("/courses");
   }
 
-  let chapters = await Chapter.find({course: course._id}).sort({index: 1});
+  let chapters = await Chapter.find({ course: req.params.id }).sort({ index: 1 });
   let lessons = [];
   let chapterLessons = null;
 
   //Constructs a JSON object to facilitate the rendering of the lessons
   for (let chapter of chapters){
-    chapterLessons = await Lesson.find({chapter: chapter._id}).sort({index: 1});
+    chapterLessons = await Lesson.find({ chapter: chapter.id }).sort({ index: 1 });
 
     lessons.push({
       "chapter": chapter.name,
@@ -126,7 +142,6 @@ app.get("/scan", async (req, res) => {
 
   //Loop through the foundCourses and add them to the database
   for (let course of foundCourses){
-    console.log("🔍 Scanning " + course + "...");
     const newCourse = new Course({
       name: course,
       path: "/courses/" + course,
@@ -148,7 +163,6 @@ app.get("/scan", async (req, res) => {
     console.log("Found " + chapters.length + " chapters");
 
     for (let chapter of chapters){
-      console.log(chapter);
       const newChapter = new Chapter({
         index: chapter.match(/\d+/) ? parseInt(chapter.match(/\d+/)[0]) : 0,
         name: chapter,
@@ -174,14 +188,22 @@ app.get("/scan", async (req, res) => {
       console.log("Found " + lessons.length + " lessons");
 
       for (let lesson of lessons){
-        let duration = await getVideoDurationInSeconds("./assets" + chapter.path + "/" + lesson);
+        let videoDuration = null;
+        try {
+          await getVideoDurationInSeconds("./assets" + chapter.path + "/" + lesson).then((duration) => {
+            videoDuration = duration;
+          });
+        } catch (error) {
+          videoDuration = -1;
+        }
+
         const newLesson = new Lesson({
           index: lesson.match(/\d+/) ? parseInt(lesson.match(/\d+/)[0]) : 0,
           name: lesson,
           path: chapter.path + "/" + lesson,
           course: course._id,
           chapter: chapter._id,
-          length: duration,
+          length: videoDuration,
           progress: 0
         });
         
@@ -201,8 +223,12 @@ app.get("/scan", async (req, res) => {
 //Provides information about the lesson (name, length, progress)
 app.get("/lesson/:id", async (req, res) => {
   const lesson = await Lesson.findById(req.params.id);
-
-  res.send(lesson);
+  console.log(lesson);
+  if (lesson) {
+    res.status(200).send(lesson);
+  } else {
+    res.status(404).send("Lesson not found");
+  }
 });
 
 //Updates the progress of a lesson
@@ -214,27 +240,19 @@ app.post("/progress", async (req, res) => {
 
   try {
     //Added try catch because it was throwing an error when the progress was zero
-    await Lesson.findOneAndUpdate({id: lessonId}, {progress: newProgress});
-    console.log("📊 Updated progress for " + lesson.name + " to " + newProgress + " out of " + lesson.length);
+    await Lesson.findByIdAndUpdate(lessonId, {progress: newProgress});
 
     //Update the overall progress when the lesson is completed
     if (newProgress >= lesson.length - 15){
-      //Find all lessons with a progress that is equal or length - 15 seconds
-      //of the lessons length
+      //Find all lessons with a progress that is equal or length - 15 seconds of the lessons length
       const finishedLessons = await Lesson.find({course: course.id, progress: {$gte: lesson.length - 15}});
-      console.log(finishedLessons)
       const lessons = await Lesson.find({course: course.id});
 
       //Calculate percentage of finished lessons
-      console.log("📊 " + finishedLessons.length + " out of " + lessons.length + " lessons are finished");
       const percentage = Math.round((finishedLessons.length / lessons.length) * 100);
 
-      console.log("Percentage of finished lessons: " + percentage + "%");
-
       //Update the overall progress of the course
-      await Course.findOneAndUpdate({id: course.id}, {overAllProgress: percentage});
-      console.log("📊 " + lesson.name + " completed!");
-      console.log("------------------------------------");
+      await Course.findByIdAndUpdate(course.id, {overAllProgress: percentage});
     }
   } catch {
     console.log("Failed to update progress");
@@ -250,10 +268,6 @@ app.get("/rescan", async (req, res) => {
   await Chapter.deleteMany({});
   await Lesson.deleteMany({});
 
-  //Progress deletion is optional
-  if (req.query.progress == "true"){
-    await Progress.deleteMany({});
-  }
   res.redirect("/scan");
 });
 
