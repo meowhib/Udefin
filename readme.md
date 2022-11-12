@@ -6,6 +6,7 @@ Courses need to be places in the assets/courses folder.
 - Parse folder data
 - Keep progress and play lessons from where you left off
 - An accordion on the side to play the courses from (similar UI to Udemy's player)
+- Edit course information (name, topic, etc...)
 
 ## Requirements
 - Mongodb installed
@@ -23,9 +24,7 @@ Currently that's the only way to install it, I will make a docker image soon.
 - Take notes from the player itself
 - Imbed resources (pdfs, files) in the accordion
 - Subtitles support
-- Edit course information (name, description, topic, etc...)
 - Show progress of each course in the courses page
-- Automatically/manually change the thumbnail of the course
 - Custom video controls
 - Ability to select folder from which the courses are played (Like Jellyfin libraries)
 
