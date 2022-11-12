@@ -244,12 +244,11 @@ app.post("/progress", async (req, res) => {
 
     //Update the overall progress when the lesson is completed
     if (newProgress >= lesson.length - 15){
-      //Find all lessons with a progress that is equal or length - 15 seconds of the lessons length
-      const finishedLessons = await Lesson.find({course: course.id, progress: {$gte: lesson.length - 15}});
       const lessons = await Lesson.find({course: course.id});
+      const completedLessonsCount = lessons.filter(lesson => lesson.progress >= lesson.length - 15).length;
 
       //Calculate percentage of finished lessons
-      const percentage = Math.round((finishedLessons.length / lessons.length) * 100);
+      const percentage = Math.round((completedLessonsCount / lessons.length) * 100);
 
       //Update the overall progress of the course
       await Course.findByIdAndUpdate(course.id, {overAllProgress: percentage});
