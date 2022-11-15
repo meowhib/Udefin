@@ -5,7 +5,8 @@
         <!-- aria-expanded="true" -->
         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target=<%= "#collapse" + i %> aria-controls=<%= "collapse" + i %>>
           <!-- Chapter name goes here -->
-          <%= lessons[i].chapter %>
+          <h6 class="flex-grow-1" style="display: flex;"><%= lessons[i].chapter %></h6>
+          <h6 class="d-sm-flex justify-content-sm-end me-2" style="display: block;"><%= lessons[i].completedLessons %>/<%= lessons[i].lessons.length %></h6>
         </button>
       </h2>
       <div id=<%= "collapse" + i %> class="accordion-collapse collapse" aria-labelledby=<%= "heading" + i %> data-bs-parent="#accordionExample">
@@ -33,4 +34,11 @@
       </div>
     </div>
   <% } %>
+</div>
+
+
+
+<div class="col" style="display: flex;">
+  <h1 class="flex-grow-1" style="display: flex;">Heading fffffff       ffffffffff fsdfsfdsdf</h1>
+  <h1 class="d-sm-flex justify-content-sm-end" style="display: block;">fsdf</h1>
 </div>

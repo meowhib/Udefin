@@ -87,9 +87,16 @@ app.get("/courses/:id", async (req, res) => {
 
     lessons.push({
       "chapter": chapter.name,
-      "lessons": chapterLessons
+      "lessons": chapterLessons,
+      "completedLessons": chapterLessons.filter(lesson => {
+        if (lesson.progress >= lesson.length - 15){
+          return lesson;
+        }
+      }).length
     });
   }
+
+  console.log(lessons);
 
   if (course) {
     res.status(200).render("coursePage", { course, lessons });
@@ -223,7 +230,6 @@ app.get("/scan", async (req, res) => {
 //Provides information about the lesson (name, length, progress)
 app.get("/lesson/:id", async (req, res) => {
   const lesson = await Lesson.findById(req.params.id);
-  console.log(lesson);
   if (lesson) {
     res.status(200).send(lesson);
   } else {
