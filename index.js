@@ -30,6 +30,86 @@ const Lesson = require('./models/lesson');
 const PORT = 3000;
 const coursesPath = './assets/courses';
 
+//Functions
+function getIndex(string){
+  return string.match(/(\d+\.?)+/g)[0];
+}
+
+function getExtension(string){
+  return string.split('.').pop();
+}
+
+function getFolders(coursePath) {
+  return fs.readdirSync(coursesPath, { withFileTypes: true})
+  .filter(dirent => dirent.isDirectory())
+  .map(dirent => dirent.name);
+}
+
+//Gets a list of files in a folder (an arugment can be passed to filter by extension)
+function getFiles(path, extension = null) {
+  return fs.readdirSync(path, { withFileTypes: true})
+  .filter(dirent => dirent.isFile())
+  .filter(dirent => extension ? getExtension(dirent.name) === extension : true)
+  .map(dirent => dirent.name);
+}
+
+function scanCourse(courseName){
+  //Get the course path
+  let coursePath = coursesPath + '/' + courseName;
+
+  const newCourse = new Course({
+    name: courseName,
+    path: coursePath,
+    chapters: [],
+  });
+
+  //Get a list of chapters
+  let chapters = getFolders(coursePath);
+  
+  chapters.forEach(chapter => {
+    let chapterPath = coursePath + '/' + chapter;
+    
+    const newChapter = new Chapter({
+      index: getIndex(chapter),
+      name: chapter,
+      path: chapterPath,
+      course: newCourse._id,
+      lessons: [],
+    });
+
+    //Get a list of lessons
+    let lessons = getFiles(chapterPath);
+
+    lessons.forEach(lesson => {
+      let lessonPath = chapterPath + '/' + lesson;
+      let lessonDuration = null;
+
+      //Get the duration of the video
+      try {
+        lessonDuration = getVideoDurationInSeconds(lessonPath);
+      } catch (error) {
+        console.log("❌ Couldn't get the duration of the video: " + lessonPath);
+      }
+
+      let newLesson = new Lesson({
+        index: getIndex(lesson),
+        name: lesson,
+        path: lessonPath,
+        course: newCourse._id,
+        chapter: newChapter._id,
+        length: lessonDuration,
+      }).save()
+
+      newChapter.lessons.push(newLesson._id);
+    });
+
+    newChapter.save();
+    newCourse.chapters.push(newChapter._id);
+  });
+
+  newCourse.save();
+}
+
 //App
 app.get('/', (req, res) => {
   res.redirect("/courses");

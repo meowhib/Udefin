@@ -13,7 +13,10 @@ const lessonSchema = new mongoose.Schema({
     ref: 'Chapter'
   },
   length: Number,
-  progress: Number
+  progress: {
+    type: Number,
+    default: 0
+  }
 });
 
 module.exports = mongoose.model('Lesson', lessonSchema);
