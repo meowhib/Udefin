@@ -32,7 +32,11 @@ const coursesPath = './assets/courses';
 
 //Functions
 function getIndex(string){
-  return string.match(/(\d+\.?)+/g)[0];
+  try {
+    return string.match(/(\d+\.?)+/g)[0];
+  } catch (error) {
+    return 0;
+  }
 }
 
 function getExtension(string){
@@ -40,22 +44,33 @@ function getExtension(string){
 }
 
 function getFolders(coursePath) {
-  return fs.readdirSync(coursesPath, { withFileTypes: true})
+  return fs.readdirSync(coursePath, { withFileTypes: true})
   .filter(dirent => dirent.isDirectory())
   .map(dirent => dirent.name);
 }
 
 //Gets a list of files in a folder (an arugment can be passed to filter by extension)
 function getFiles(path, extension = null) {
+  console.log("Getting files from: " + path);
+
+  //If extension is an array
+  if (Array.isArray(extension)) {
+    return fs.readdirSync(path, { withFileTypes: true})
+    .filter(dirent => dirent.isFile())
+    .filter(dirent => extension ? extension.includes(getExtension(dirent.name)) : true)
+    .map(dirent => dirent.name);
+  }
+  
   return fs.readdirSync(path, { withFileTypes: true})
   .filter(dirent => dirent.isFile())
-  .filter(dirent => extension ? getExtension(dirent.name) === extension : true)
+  .filter(dirent => extension ? getExtension(dirent.name) : true)
   .map(dirent => dirent.name);
 }
 
 function scanCourse(courseName){
   //Get the course path
   let coursePath = coursesPath + '/' + courseName;
+  console.log("Scanning course: " + coursePath);
 
   const newCourse = new Course({
     name: courseName,
@@ -69,6 +84,7 @@ function scanCourse(courseName){
   chapters.forEach(chapter => {
     let chapterPath = coursePath + '/' + chapter;
     
+    console.log('Chapter: ' + chapter);
     const newChapter = new Chapter({
       index: getIndex(chapter),
       name: chapter,
@@ -78,29 +94,41 @@ function scanCourse(courseName){
     });
 
     //Get a list of lessons
-    let lessons = getFiles(chapterPath);
+    let lessons = getFiles(chapterPath, ['mp4', 'webm', 'ogg', "mkv"]);
 
     lessons.forEach(lesson => {
       let lessonPath = chapterPath + '/' + lesson;
       let lessonDuration = null;
 
+      console.log('✏ Lesson: ' + lesson);
+
       //Get the duration of the video
       try {
-        lessonDuration = getVideoDurationInSeconds(lessonPath);
+        getVideoDurationInSeconds(lessonPath).then((duration) => {
+          let newLesson = new Lesson({
+            index: getIndex(lesson),
+            name: lesson,
+            path: lessonPath,
+            course: newCourse._id,
+            chapter: newChapter._id,
+            length: duration,
+          }).save()
+
+          newChapter.lessons.push(newLesson._id);
+        });
       } catch (error) {
         console.log("❌ Couldn't get the duration of the video: " + lessonPath);
+        let newLesson = new Lesson({
+          index: getIndex(lesson),
+          name: lesson,
+          path: lessonPath,
+          course: newCourse._id,
+          chapter: newChapter._id,
+          length: -1,
+        }).save()
+
+        newChapter.lessons.push(newLesson._id);
       }
-
-      let newLesson = new Lesson({
-        index: getIndex(lesson),
-        name: lesson,
-        path: lessonPath,
-        course: newCourse._id,
-        chapter: newChapter._id,
-        length: lessonDuration,
-      }).save()
-
-      newChapter.lessons.push(newLesson._id);
     });
 
     newChapter.save();
@@ -195,7 +223,7 @@ app.get("/video/:lessonid", async (req, res) => {
     return res.status(400).send("Requires Range header" + "\n" + lessonPath.path);
   }
 
-  const videoPath = "./assets" + lessonPath.path;
+  const videoPath = lessonPath.path;
   const videoSize = fs.statSync(videoPath).size;
   const CHUNK_SIZE = 10 ** 6;
   const start = Number(range.replace(/\D/g, ""));
@@ -220,88 +248,14 @@ app.get("/scan", async (req, res) => {
     fs.mkdirSync(coursesPath);
   }
 
-  //Return a list of folders in the courses folder
-  console.log("Scanning for courses...");
-  const foundCourses = fs.readdirSync(coursesPath, { withFileTypes: true})
-  .filter(dirent => dirent.isDirectory())
-  .map(dirent => dirent.name);
-  console.log("Found " + foundCourses.length + " courses");
+  //Get a list of courses
+  let courses = getFolders(coursesPath);
 
-  //Loop through the foundCourses and add them to the database
-  for (let course of foundCourses){
-    const newCourse = new Course({
-      name: course,
-      path: "/courses/" + course,
-      chapters: [],
-      overAllProgress: 0
-    });
-
-    await newCourse.save();
-    console.log("📁 Added " + course + " to the database");
-  }
-
-  const courses = await Course.find({});
+  //Scan each course
+  courses.forEach(course => {
+    scanCourse(course);
+  });
   
-  for (let course of courses){
-    console.log("🔍 Scanning for chapters in " + course.name + "...");
-    const chapters = fs.readdirSync("./assets" + course.path, { withFileTypes: true})
-    .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name);
-    console.log("Found " + chapters.length + " chapters");
-
-    for (let chapter of chapters){
-      const newChapter = new Chapter({
-        index: chapter.match(/\d+/) ? parseInt(chapter.match(/\d+/)[0]) : 0,
-        name: chapter,
-        path: course.path + "/" + chapter,
-        lessons: [],
-        course: course._id
-      });
-
-      await newChapter.save();
-      await Course.updateOne({name: course.name}, {$push: {chapters: newChapter._id}});
-      console.log("📁 Added " + chapter + " to the database");
-    }
-  }
-
-  for (let course of courses){
-    console.log("🔍 Scanning for lessons in " + course.name + "...");
-    const chapters = await Chapter.find({course: course._id});
-    for (let chapter of chapters){
-      const lessons = fs.readdirSync("./assets" + chapter.path, { withFileTypes: true})
-      .filter(dirent => dirent.isFile())
-      .filter(dirent => dirent.name.endsWith(".mp4"))
-      .map(dirent => dirent.name);
-      console.log("Found " + lessons.length + " lessons");
-
-      for (let lesson of lessons){
-        let videoDuration = null;
-        try {
-          await getVideoDurationInSeconds("./assets" + chapter.path + "/" + lesson).then((duration) => {
-            videoDuration = duration;
-          });
-        } catch (error) {
-          videoDuration = -1;
-        }
-
-        const newLesson = new Lesson({
-          index: lesson.match(/\d+/) ? parseInt(lesson.match(/\d+/)[0]) : 0,
-          name: lesson,
-          path: chapter.path + "/" + lesson,
-          course: course._id,
-          chapter: chapter._id,
-          length: videoDuration,
-          progress: 0
-        });
-        
-        //Saving the lesson to the database
-        await newLesson.save();
-        await Chapter.updateOne({name: chapter.name}, {$push: {lessons: newLesson._id}});
-        console.log("📜 Added " + lesson + " to the database");
-      }
-    }
-  }
-
   const endTime = new Date().getTime();
   console.log("🚀 Scanning complete! Took " + (endTime - startTime) / 1000 + " seconds");
   return res.redirect("/courses");
@@ -355,6 +309,16 @@ app.get("/rescan", async (req, res) => {
 
   res.redirect("/scan");
 });
+
+app.get("/scancourse/:name", (req, res) => {  
+  //Delete database for rescanning
+  Course.deleteMany({name: req.params.name}, (err) => {
+    if (err) console.log(err);
+    console.log("Deleted " + req.params.name + " from the database");
+  });
+  scanCourse(req.params.name);
+  res.redirect("/courses");
+})
 
 app.listen(PORT, () => {
   console.log(`Udefin app listening at http://localhost:${PORT}`)
