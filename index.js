@@ -97,6 +97,11 @@ function scanCourse(courseName){
     //Get a list of lessons
     let lessons = getFiles(chapterPath, ['mp4', 'webm', 'ogg', "mkv"]);
 
+    if (!lessons.length) {
+      console.log('No lessons found in ' + chapterPath);
+      return;
+    }
+
     lessons.forEach(async lesson => {
       let lessonPath = chapterPath + '/' + lesson;
       let newLesson = null;
