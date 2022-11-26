@@ -1,5 +1,5 @@
 # Udefin
-A Udemy selfhosted courses player. It was called Udefin because it was made to play Udemy courses (Or any course just follow the structure of folders (CourseName > ListOfChapters > LessonsNames)) and inspired by Jellyfin.
+A selfhosted courses player. Folder structure: Course > Chapters > Lessons 
 Courses need to be places in the assets/courses folder.
 
 ## Features
