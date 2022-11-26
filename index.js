@@ -51,8 +51,6 @@ function getFolders(coursePath) {
 
 //Gets a list of files in a folder (an arugment can be passed to filter by extension)
 function getFiles(path, extension = null) {
-  console.log("Getting files from: " + path);
-
   //If extension is an array
   if (Array.isArray(extension)) {
     return fs.readdirSync(path, { withFileTypes: true})
@@ -68,9 +66,13 @@ function getFiles(path, extension = null) {
 }
 
 function scanCourse(courseName){
+  const startTime = new Date().getTime();
+
   //Get the course path
   let coursePath = coursesPath + '/' + courseName;
-  console.log("Scanning course: " + coursePath);
+
+  //Check if the course already exists in the database
+  const course = Course.findOne({ name: courseName });
 
   const newCourse = new Course({
     name: courseName,
@@ -84,7 +86,6 @@ function scanCourse(courseName){
   chapters.forEach(chapter => {
     let chapterPath = coursePath + '/' + chapter;
     
-    console.log('Chapter: ' + chapter);
     const newChapter = new Chapter({
       index: getIndex(chapter),
       name: chapter,
@@ -96,16 +97,14 @@ function scanCourse(courseName){
     //Get a list of lessons
     let lessons = getFiles(chapterPath, ['mp4', 'webm', 'ogg', "mkv"]);
 
-    lessons.forEach(lesson => {
+    lessons.forEach(async lesson => {
       let lessonPath = chapterPath + '/' + lesson;
-      let lessonDuration = null;
-
-      console.log('✏ Lesson: ' + lesson);
+      let newLesson = null;
 
       //Get the duration of the video
       try {
-        getVideoDurationInSeconds(lessonPath).then((duration) => {
-          let newLesson = new Lesson({
+        await getVideoDurationInSeconds(lessonPath).then((duration) => {
+          newLesson = new Lesson({
             index: getIndex(lesson),
             name: lesson,
             path: lessonPath,
@@ -118,7 +117,7 @@ function scanCourse(courseName){
         });
       } catch (error) {
         console.log("❌ Couldn't get the duration of the video: " + lessonPath);
-        let newLesson = new Lesson({
+        newLesson = new Lesson({
           index: getIndex(lesson),
           name: lesson,
           path: lessonPath,
@@ -136,6 +135,8 @@ function scanCourse(courseName){
   });
 
   newCourse.save();
+  const endTime = new Date().getTime();
+  console.log("🚀 Scanning complete! Took " + (endTime - startTime) / 1000 + " seconds");
 }
 
 //App
@@ -204,8 +205,6 @@ app.get("/courses/:id", async (req, res) => {
     });
   }
 
-  console.log(lessons);
-
   if (course) {
     res.status(200).render("coursePage", { course, lessons });
   } else {
@@ -269,6 +268,10 @@ app.get("/lesson/:id", async (req, res) => {
   } else {
     res.status(404).send("Lesson not found");
   }
+});
+
+app.get("/foldercontent", async (req, res) => {
+  return res.send(getFolders(coursesPath));
 });
 
 //Updates the progress of a lesson
