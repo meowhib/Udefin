@@ -102,9 +102,21 @@ function scanCourse(courseName){
       return;
     }
 
+    let subtitles = getFiles(chapterPath, ['vtt']);
+    console.log("Got subtitles")
+    let indexedSubtitles = {};
+    
+    if (subtitles){
+      for (let subtitle of subtitles){
+        indexedSubtitles[getIndex(subtitle)] = "/" + chapterPath.split("/").slice(2).join("/") + '/' + subtitle;
+      }
+    }
+    console.log(indexedSubtitles);
+
     lessons.forEach(async lesson => {
       let lessonPath = chapterPath + '/' + lesson;
       let newLesson = null;
+      let lessonSubtitle = indexedSubtitles[getIndex(lesson)]
 
       //Get the duration of the video
       try {
@@ -116,6 +128,7 @@ function scanCourse(courseName){
             course: newCourse._id,
             chapter: newChapter._id,
             length: duration,
+            subtitlePath: lessonSubtitle ? lessonSubtitle : ""
           }).save()
 
           newChapter.lessons.push(newLesson._id);
@@ -129,6 +142,7 @@ function scanCourse(courseName){
           course: newCourse._id,
           chapter: newChapter._id,
           length: -1,
+          subtitlePath: lessonSubtitle ? lessonSubtitle : ""
         }).save()
 
         newChapter.lessons.push(newLesson._id);

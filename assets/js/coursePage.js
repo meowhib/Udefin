@@ -10,11 +10,14 @@ function setSource(src){
   .then((data) => {
     var video = document.getElementById("video");
     var videoTitle = document.getElementById("videoTitle");
+    var videoTrack = document.getElementById("myTrack");
+
     videoSource.setAttribute("src", src);
     videoSource.setAttribute('type', 'video/mp4');
     video.load();
     video.play();
     videoTitle.innerHTML = data.name;
+    videoTrack.setAttribute("src", data.subtitlePath);
     console.log(data.progress);
     video.currentTime = data.progress;
     video.focus();

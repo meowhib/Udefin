@@ -16,6 +16,10 @@ const lessonSchema = new mongoose.Schema({
   progress: {
     type: Number,
     default: 0
+  },
+  subtitlePath: {
+    type: String,
+    default: ""
   }
 });
 
