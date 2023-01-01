@@ -15,11 +15,16 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 
-//Conntect to MongoDB
-mongoose.connect('mongodb://localhost:27017/Udefin', {useNewUrlParser: true, useUnifiedTopology: true })
-.then(() => {
-  console.log('Connected to MongoDB');
-});
+//Conntect to MongoDB with strictQuery setting to false
+mongoose.set('strictQuery', false);
+mongoose.connect('mongodb://localhost:27017/Udefin')
+  .then(() => {
+    console.log("🚀 Connected to MongoDB!");
+  })
+  .catch(err => {
+    console.log("❌ Error connecting to MongoDB!");
+    console.log(err);
+  });
 
 //Models
 const Course = require('./models/course');
