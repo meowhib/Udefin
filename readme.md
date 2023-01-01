@@ -21,6 +21,7 @@ Courses need to be places in the assets/courses folder.
 Currently that's the only way to install it, I will make a docker image soon.
 
 ## Upcomming features
+I will probably start using Tailwind instead of Bootstrap, and use React with Next.js for the frontend (until I find time to learn them).
 - Take notes from the player itself
 - Imbed resources (pdfs, files) in the accordion
 - Subtitles support
