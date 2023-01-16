@@ -5,6 +5,7 @@ const { getVideoDurationInSeconds } = require('get-video-duration')
 const bodyParser = require('body-parser');
 const ejsMate = require('ejs-mate');
 const methodOverride = require('method-override');
+const router = express.Router();
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
+app.use("/", router);
 
 //Conntect to MongoDB with strictQuery setting to false
 mongoose.set('strictQuery', false);
@@ -31,8 +33,13 @@ const Course = require('./models/course');
 const Chapter = require('./models/chapter');
 const Lesson = require('./models/lesson');
 
+//Routers
+const courseRouter = require("./routes/course");
+
+app.use("/course", courseRouter);
+
 //Constants
-const PORT = 3000;
+const PORT = process.env.PORT;
 const coursesPath = './assets/courses';
 
 //Functions
