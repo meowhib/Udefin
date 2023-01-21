@@ -1,8 +1,17 @@
 FROM node:latest
-RUN apk add --no-cache nodejs npm
-WORKDIR /app
-COPY package.json /app
+
+# Create app directory
+WORKDIR /usr/src/app
+
+# Install app dependencies
+COPY package*.json ./
+
+# Install dependencies
 RUN npm install
-COPY . /app
+
+# Bundle app source
+COPY . .
+
 EXPOSE 3000
-CMD [ "node", "app.js" ]
+
+CMD [ "node", "index.js" ]
