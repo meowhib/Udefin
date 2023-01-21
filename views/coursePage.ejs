@@ -27,10 +27,8 @@
   </div>
 </div>
 
-<%- include('partials/navbar') %>
-
-<div class="container-fluid">
-  <div class="row">
+<div class="container-fluid p-0">
+  <div class="row gx-0">
       <div class="col-xl-8" style="margin-bottom: 32px;">
         <div class="video-container ratio ratio-16x9 bg-primary">
           <video id="video" controls autoplay>
@@ -42,8 +40,8 @@
           <h3 id="videoTitle"><%= course.name %></h3>
         </div>
       </div>
-      <div class="col overflow-scroll">
-        <div class="accordion-holder position-relative">
+      <div class="accordion-holder col">
+        <div class="vh-100 position-relative">
           <%- include("./partials/accordion", { lessons }) %>
         </div>
       </div>

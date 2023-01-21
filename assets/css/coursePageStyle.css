@@ -6,3 +6,8 @@
 .lesson-card-holder:hover {
   background-color: #d1d1d1!important;
 }
+
+.accordion-holder {
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
