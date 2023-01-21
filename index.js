@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const ejsMate = require('ejs-mate');
 const methodOverride = require('method-override');
+const cors = require('cors');
 
 require("dotenv").config();
 const PORT = process.env.PORT;
@@ -22,6 +23,8 @@ app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
+app.use(cors());
+
 app.use("/", router);
 app.use("/scan", scanRouter);
 app.use("/courses", coursesRouter);
