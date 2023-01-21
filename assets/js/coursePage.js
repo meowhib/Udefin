@@ -3,7 +3,7 @@ var video = document.getElementById("video");
 //Changes the video based on the given lessonId
 function setSource(src){
   //Fetch lesson data
-  fetch("/lesson/" + src.split("/")[src.split("/").length - 1])
+  fetch("/lessons/" + src.split("/")[src.split("/").length - 1])
   .then((response) => {
     return response.json();
   })
@@ -61,7 +61,7 @@ function updateProgress(){
     const currentTime = Math.round(video.currentTime);
     
     //Send the progress to the server
-    fetch("/progress?lessonId=" + lessonId + "&progress=" + currentTime, {
+    fetch("/lessons/progress?lessonId=" + lessonId + "&progress=" + currentTime, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
