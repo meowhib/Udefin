@@ -29,9 +29,7 @@ router.get("/", async (req, res) => {
     }
     
   
-    // res.render('coursesPage', {courses});
-    console.log("Request made to /courses")
-    res.send(courses);
+    res.render('coursesPage', {courses});
 });
 
 router.get("/all", (req, res) => {
@@ -86,6 +84,18 @@ router.put("/courses/:id", async (req, res) => {
     await course.save();
   
     res.redirect("/courses");
+});
+
+router.delete("/:id", async (req, res) => {
+    const course = await Course.findById(req.params.id);
+
+    if (!course) {
+        return res.status(404).send("Course not found");
+    }
+
+    await Course.deleteOne({ _id: req.params.id });
+
+    return res.status(200).send("Course deleted");
 });
 
 module.exports = router;

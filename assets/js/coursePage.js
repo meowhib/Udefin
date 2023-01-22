@@ -82,3 +82,14 @@ function isPlaying(video) {
 
 //Updates the progress when the video position changes
 video.addEventListener("timeupdate", updateProgress);
+
+//Pause the video when the user presses the spacebar
+document.addEventListener("keydown", function(e){
+  if (e.keyCode == 32 && document.activeElement != video){
+    if (isPlaying(video)){
+      pause();
+    } else {
+      play();
+    }
+  }
+});
