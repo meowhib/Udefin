@@ -1,3 +1,0 @@
-- Count the files that couldn't get the duration for
-- Split the scanning into a function that accepts a path of a course
-- The /scan should call the /scancourse function for every course it finds

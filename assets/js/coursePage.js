@@ -26,7 +26,24 @@ function setSource(src){
 
 function fullscreen(){
   const video = document.getElementById("video");
-  video.fullscreen();
+
+  if (video.requestFullscreen) {
+    video.requestFullscreen();
+  } else if (video.webkitRequestFullscreen) { /* Safari */
+    video.webkitRequestFullscreen();
+  } else if (video.msRequestFullscreen) { /* IE11 */
+    video.msRequestFullscreen();
+  }
+}
+
+function closeFullscreen(){
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) { /* Safari */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) { /* IE11 */
+    document.msExitFullscreen();
+  }
 }
 
 function pause(){
@@ -94,14 +111,16 @@ document.addEventListener("keydown", function(e){
   }
 
   if (e.keyCode == 37 && document.activeElement != video){
+    e.preventDefault();
     backward5Seconds();
   }
 
   if (e.keyCode == 39 && document.activeElement != video){
+    e.preventDefault();
     forward5Seconds();
   }
 
-  if (e.keyCode == 70 && document.activeElement != video){
+  if (e.keyCode == 70){
     fullscreen();
   }
 });
