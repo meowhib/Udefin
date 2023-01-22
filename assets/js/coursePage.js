@@ -92,4 +92,16 @@ document.addEventListener("keydown", function(e){
       play();
     }
   }
+
+  if (e.keyCode == 37 && document.activeElement != video){
+    backward5Seconds();
+  }
+
+  if (e.keyCode == 39 && document.activeElement != video){
+    forward5Seconds();
+  }
+
+  if (e.keyCode == 70 && document.activeElement != video){
+    fullscreen();
+  }
 });
