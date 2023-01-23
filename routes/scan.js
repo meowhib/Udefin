@@ -9,7 +9,7 @@ const router = express.Router();
 const Course = require("../models/course");
 const Chapter = require("../models/chapter");
 const Lesson = require("../models/lesson");
-const { runInContext } = require("vm");
+const Resource = require("../models/resource");
 
 //Consts
 const coursesPath = './assets/courses';
@@ -38,7 +38,8 @@ async function scanCourse(courseName){
   
     //Get a list of chapters
     let chapters = getFolders(coursePath);
-    
+    let indexedResources = {};
+
     chapters.forEach(chapter => {
       let chapterPath = coursePath + '/' + chapter;
       
@@ -53,18 +54,29 @@ async function scanCourse(courseName){
       //Get a list of lessons
       let lessons = getFiles(chapterPath, ['mp4', 'webm', 'ogg', "mkv"]);
   
-      //Exit if no lessons
-      if (!lessons.length) {
-        console.log('No lessons found in ' + chapterPath);
-        return;
-      }
+      // //Exit if no lessons
+      // if (!lessons.length) {
+      //   console.log('No lessons found in ' + chapterPath);
+      //   return;
+      // }
   
+      //Looks for subtitles
       let subtitles = getFiles(chapterPath, ['vtt']);
       let indexedSubtitles = {};
       
       if (subtitles){
         for (let subtitle of subtitles){
           indexedSubtitles[getIndex(subtitle)] = "/" + chapterPath.split("/").slice(2).join("/") + '/' + subtitle;
+        }
+      }
+
+      
+      //Looks for resources
+      let resources = getFiles(chapterPath, ["pdf", "html", "zip"]);
+
+      if (resources){
+        for (let resource of resources){
+          indexedResources[getIndex(resource)] = "/" + chapterPath.split("/").slice(2).join("/") + '/' + resource;
         }
       }
 
@@ -83,8 +95,22 @@ async function scanCourse(courseName){
               course: newCourse._id,
               chapter: newChapter._id,
               length: duration,
-              subtitlePath: lessonSubtitle ? lessonSubtitle : ""
+              subtitlePath: lessonSubtitle ? lessonSubtitle : "",
+              resources: []
             }).save()
+
+            const lessonResource = indexedResources[getIndex(lesson)];
+            if (lessonResource){
+              const newResource = new Resource({
+                index: getIndex(lessonResource),
+                path: lessonResource,
+                type: getExtension(lessonResource),
+                lesson: newLesson._id
+              }).save();
+              newLesson.resources.push(newResource._id);
+              console.log("📁 Resource added to lesson: " + lessonResource)
+              delete indexedResources[getIndex(lesson)];
+            }   
   
             newChapter.lessons.push(newLesson._id);
           });
@@ -97,18 +123,45 @@ async function scanCourse(courseName){
             course: newCourse._id,
             chapter: newChapter._id,
             length: -1,
-            subtitlePath: lessonSubtitle ? lessonSubtitle : ""
+            subtitlePath: lessonSubtitle ? lessonSubtitle : "",
+            resources: []
           }).save()
   
+          const lessonResource = indexedResources[getIndex(lesson)];
+            if (lessonResource){
+              const newResource = new Resource({
+                index: getIndex(lessonResource),
+                path: lessonResource,
+                type: getExtension(lessonResource),
+                lesson: newLesson._id
+              }).save();
+              newLesson.resources.push(newResource._id);
+              console.log("📁 Resource added: " + lessonResource)
+              delete indexedResources[getIndex(lesson)];
+            }
+
           newChapter.lessons.push(newLesson._id);
         }
       });
   
       newChapter.save();
       newCourse.chapters.push(newChapter._id);
+      console.log("Adding resources: " + indexedResources)
     });
   
     newCourse.save();
+
+    // Iterates through the resources that do not belong to a lesson
+    for (let resource of Object.keys(indexedResources)){
+      const newResource = new Resource({
+        index: getIndex(indexedResources[resource]),
+        path: indexedResources[resource],
+        type: getExtension(indexedResources[resource]),
+        lesson: null
+      }).save();
+      console.log("📁 Resource added: " + resource)
+    }
+
     const endTime = new Date().getTime();
     console.log("🚀 Scanning complete! Took " + (endTime - startTime) / 1000 + " seconds");
 }
