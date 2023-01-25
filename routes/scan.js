@@ -38,7 +38,6 @@ async function scanCourse(courseName){
   
     //Get a list of chapters
     let chapters = getFolders(coursePath);
-    let indexedResources = {};
 
     chapters.forEach(chapter => {
       let chapterPath = coursePath + '/' + chapter;
@@ -51,40 +50,38 @@ async function scanCourse(courseName){
         lessons: [],
       });
   
-      //Get a list of lessons
-      let lessons = getFiles(chapterPath, ['mp4', 'webm', 'ogg', "mkv"]);
-  
-      // //Exit if no lessons
-      // if (!lessons.length) {
-      //   console.log('No lessons found in ' + chapterPath);
-      //   return;
-      // }
-  
-      //Looks for subtitles
-      let subtitles = getFiles(chapterPath, ['vtt']);
-      let indexedSubtitles = {};
-      
-      if (subtitles){
-        for (let subtitle of subtitles){
-          indexedSubtitles[getIndex(subtitle)] = "/" + chapterPath.split("/").slice(2).join("/") + '/' + subtitle;
-        }
-      }
-
-      
-      //Looks for resources
-      let resources = getFiles(chapterPath, ["pdf", "html", "zip"]);
-
-      if (resources){
-        for (let resource of resources){
-          indexedResources[getIndex(resource)] = "/" + chapterPath.split("/").slice(2).join("/") + '/' + resource;
-        }
-      }
+      //Get a list of files
+      const lessons = getFiles(chapterPath, ["mp4", "mkv"])
+      let subtitles = getFiles(chapterPath, ["vtt", "srt"]);
+      let resources = getFiles(chapterPath, ["pdf", "html"]);
 
       lessons.forEach(async lesson => {
-        let lessonPath = chapterPath + '/' + lesson;
-        let newLesson = null;
-        let lessonSubtitle = indexedSubtitles[getIndex(lesson)]
-  
+        const lessonPath = chapterPath + '/' + lesson;
+        let lessonResourcesIDs = []; //Contains all the ids of the resources that belong to this lesson
+
+        //Get the resources that correspond to this lesson
+        let lessonResources = resources.filter(resource => resource.startsWith(getIndex(lesson)));
+        //Remove filtered resources from the resources array
+        resources = resources.filter(resource => !resource.startsWith(getIndex(lesson)));
+
+        for (let lessonResource of lessonResources){
+          new Resource({
+            index: getIndex(lessonResource),
+            name: lessonResource,
+            path: chapterPath + lessonResource,
+            type: getExtension(lessonResource),
+          }).save()
+          .then((newResource) => {
+            lessonResourcesIDs.push(newResource._id);
+          });
+        }
+        
+        //Get the subtitle that corresponds to this lesson
+        let lessonSubtitle;
+
+        //Remove the filtered subtitle from the subtitles array
+        subtitles = subtitles.filter(subtitle => !subtitle.startsWith(getIndex(lesson)));
+
         //Get the duration of the video
         try {
           await getVideoDurationInSeconds(lessonPath).then((duration) => {
@@ -95,22 +92,10 @@ async function scanCourse(courseName){
               course: newCourse._id,
               chapter: newChapter._id,
               length: duration,
-              subtitlePath: lessonSubtitle ? lessonSubtitle : "",
-              resources: []
+              subtitlePath: lessonSubtitle ? lessonPath + lessonSubtitle : "",
+              resources: lessonResourcesIDs
             }).save()
-
-            const lessonResource = indexedResources[getIndex(lesson)];
-            if (lessonResource){
-              const newResource = new Resource({
-                index: getIndex(lessonResource),
-                path: lessonResource,
-                type: getExtension(lessonResource),
-                lesson: newLesson._id
-              }).save();
-              newLesson.resources.push(newResource._id);
-              console.log("📁 Resource added to lesson: " + lessonResource)
-              delete indexedResources[getIndex(lesson)];
-            }   
+            // console.log(lessonResourcesIDs)
   
             newChapter.lessons.push(newLesson._id);
           });
@@ -123,22 +108,10 @@ async function scanCourse(courseName){
             course: newCourse._id,
             chapter: newChapter._id,
             length: -1,
-            subtitlePath: lessonSubtitle ? lessonSubtitle : "",
-            resources: []
+            subtitlePath: lessonSubtitle ? lessonPath + lessonSubtitle : "",
+            resources: lessonResourcesIDs
           }).save()
-  
-          const lessonResource = indexedResources[getIndex(lesson)];
-            if (lessonResource){
-              const newResource = new Resource({
-                index: getIndex(lessonResource),
-                path: lessonResource,
-                type: getExtension(lessonResource),
-                lesson: newLesson._id
-              }).save();
-              newLesson.resources.push(newResource._id);
-              console.log("📁 Resource added: " + lessonResource)
-              delete indexedResources[getIndex(lesson)];
-            }
+          // console.log(lessonResourcesIDs)
 
           newChapter.lessons.push(newLesson._id);
         }
@@ -146,21 +119,9 @@ async function scanCourse(courseName){
   
       newChapter.save();
       newCourse.chapters.push(newChapter._id);
-      console.log("Adding resources: " + indexedResources)
     });
   
     newCourse.save();
-
-    // Iterates through the resources that do not belong to a lesson
-    for (let resource of Object.keys(indexedResources)){
-      const newResource = new Resource({
-        index: getIndex(indexedResources[resource]),
-        path: indexedResources[resource],
-        type: getExtension(indexedResources[resource]),
-        lesson: null
-      }).save();
-      console.log("📁 Resource added: " + resource)
-    }
 
     const endTime = new Date().getTime();
     console.log("🚀 Scanning complete! Took " + (endTime - startTime) / 1000 + " seconds");

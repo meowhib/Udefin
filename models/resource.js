@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const resourceSchema = new mongoose.Schema({
     index: Number,
+    name: String,
     path: String,
     type: String,
     lesson: {
