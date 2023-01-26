@@ -40,61 +40,53 @@ router.get("/all", (req, res) => {
 
 //Renders course page
 router.get("/:id", async (req, res) => {
-    const course = await Course.findById(req.params.id);
-
+  //Returns the course with all its chapters, lessons and resources
+  try {
+    const course = await Course.findById(req.params.id).populate({ path: "chapters", populate: { path: "lessons", populate: { path: "resources"} } });
     if (!course) {
-        return res.redirect("/courses");
-    }
-
-    let chapters = await Chapter.find({ course: req.params.id }).sort({ index: 1 });
-    let lessons = [];
-    let chapterLessons = null;
-
-    //Constructs a JSON object to facilitate the rendering of the lessons
-    for (let chapter of chapters){
-        chapterLessons = await Lesson.find({ chapter: chapter.id }).sort({ index: 1 });
-
-        lessons.push({
-        "chapter": chapter.name,
-        "lessons": chapterLessons,
-        "completedLessons": chapterLessons.filter(lesson => {
-            if (lesson.progress >= lesson.length - 15){
-            return lesson;
-            }
-        }).length
-        });
-    }
-
-    if (course) {
-        res.status(200).render("coursePage", { course, lessons });
+      return res.status(404).send("Course not found");
     } else {
-        res.status(404).send("Course not found");
+      // return res.render('coursePage', {course});
+      return res.send(course);
     }
+  } catch (err) {
+    return res.status(500).send("Something went wrong");
+  }
 
-    // res.send(lessons);
 });
 
 //Renders course edit page
 router.put("/courses/:id", async (req, res) => {
-    const course = await Course.findById(req.params.id);
-  
-    course.name = req.body.name;
-    course.topic = req.body.topic;
-    
-    await course.save();
-  
-    res.redirect("/courses");
-});
-
-router.delete("/:id", async (req, res) => {
+  try {
     const course = await Course.findById(req.params.id);
 
     if (!course) {
+      return res.status(404).send("Course not found");
+    }
+  } catch (err) {
+    return res.status(500).send("Something went wrong");
+  }
+
+  course.name = req.body.name;
+  course.topic = req.body.topic;
+  
+  await course.save();
+
+  return res.redirect("/courses");
+});
+
+router.delete("/:id", async (req, res) => {
+    try {
+      const course = await Course.findById(req.params.id);
+
+      if (!course) {
         return res.status(404).send("Course not found");
+      }
+    } catch (err){
+      return res.status(500).send("Something went wrong");
     }
 
     await Course.deleteOne({ _id: req.params.id });
-
     return res.status(200).send("Course deleted");
 });
 
