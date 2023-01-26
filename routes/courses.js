@@ -40,37 +40,67 @@ router.get("/all", (req, res) => {
 
 //Renders course page
 router.get("/:id", async (req, res) => {
-  try {
-    //Returns the course with all its chapters, lessons and resources
-    const course = await Course.findById(req.params.id).populate({
-      path: "chapters",
-      model: "Chapter",
-      populate: [{
-        path: "lessons",
-        model: "Lesson",
-        populate: {
-          path: "resources",
-          model: "Resource"
-        }
-      }, {
-        path: "resources",
-        model: "Resource"
-      }]
-    });
-    if (!course) {
-      return res.status(404).send("Course not found");
-    } else {
-      // return res.render('coursePage', {course});
-      return res.send(course);
-    }
-  } catch (err) {
-    return res.status(500).send("Something went wrong");
+  // try {
+  //   //Returns the course with all its chapters, lessons and resources
+  //   const course = await Course.findById(req.params.id).populate({
+  //     path: "chapters",
+  //     model: "Chapter",
+  //     populate: [{
+  //       path: "lessons",
+  //       model: "Lesson",
+  //       populate: {
+  //         path: "resources",
+  //         model: "Resource"
+  //       }
+  //     }, {
+  //       path: "resources",
+  //       model: "Resource"
+  //     }]
+  //   });
+  //   if (!course) {
+  //     return res.status(404).send("Course not found");
+  //   } else {
+  //     // return res.render('coursePage', {course});
+  //     return res.send(course);
+  //   }
+  // } catch (err) {
+  //   return res.status(500).send("Something went wrong");
+  // }
+
+  const course = await Course.findById(req.params.id);
+
+  if (!course) {
+      return res.redirect("/courses");
   }
 
+  let chapters = await Chapter.find({ course: req.params.id }).sort({ index: 1 });
+  let lessons = [];
+  let chapterLessons = null;
+
+  //Constructs a JSON object to facilitate the rendering of the lessons
+  for (let chapter of chapters){
+      chapterLessons = await Lesson.find({ chapter: chapter.id }).sort({ index: 1 });
+
+      lessons.push({
+      "chapter": chapter.name,
+      "lessons": chapterLessons,
+      "completedLessons": chapterLessons.filter(lesson => {
+          if (lesson.progress >= lesson.length - 15){
+          return lesson;
+          }
+      }).length
+      });
+  }
+
+  if (course) {
+      res.status(200).render("coursePage", { course, lessons });
+  } else {
+      res.status(404).send("Course not found");
+  }
 });
 
 //Renders course edit page
-router.put("/courses/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
 

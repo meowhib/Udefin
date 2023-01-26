@@ -102,11 +102,22 @@ video.addEventListener("timeupdate", updateProgress);
 
 //Pause the video when the user presses the spacebar
 document.addEventListener("keydown", function(e){
+  const video = document.getElementById("video");
+
   if (e.keyCode == 32 && document.activeElement != video){
-    if (isPlaying(video)){
-      pause();
-    } else {
-      play();
+    //Prevent the default action of the spacebar
+    e.preventDefault();
+
+    // if video is not in focus
+    if (document.activeElement != video){
+      //Focus the video
+      video.focus();
+      //If the video is playing, pause it
+      if (isPlaying(video)){
+        pause();
+      } else {
+        play();
+      }
     }
   }
 
@@ -121,6 +132,38 @@ document.addEventListener("keydown", function(e){
   }
 
   if (e.keyCode == 70){
-    fullscreen();
+    if (document.fullscreenElement){
+      closeFullscreen();
+    } else {
+      fullscreen();
+    }
+  }
+
+  //If the user presses the escape key, close the fullscreen
+  if (e.keyCode == 27){
+    closeFullscreen();
+  }
+
+  //If the user presses the up arrow key, increase the volume
+  if (e.keyCode == 38){
+    video.volume += 0.1;
+  }
+
+  //If the user presses the down arrow key, decrease the volume
+  if (e.keyCode == 40){
+    video.volume -= 0.1;
+  }
+
+  //If the user presses a number key, jump to that part of the video
+  if (e.keyCode >= 48 && e.keyCode <= 57 || e.keyCode >= 96 && e.keyCode <= 105){
+    var number = e.keyCode >= 48 && e.keyCode <= 57 ? e.keyCode - 48 : e.keyCode - 96;
+    var duration = video.duration;
+    var time = duration * (number / 10);
+    video.currentTime = time; 
+  }
+
+  //If the user presses the m key, mute the video
+  if (e.keyCode == 77){
+    video.muted = !video.muted;
   }
 });
