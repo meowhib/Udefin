@@ -106,6 +106,17 @@ async function scanCourse(courseName){
       });
       
       newCourse.chapters.push(newChapter.id);
+      newChapter.resources = resources.map(resource => {
+        const newResource = new Resource({
+          index: getIndex(resource),
+          name: resource,
+          path: chapterPath + resource,
+          type: getExtension(resource),
+        });
+
+        newResource.save();
+        return newResource.id;
+      });
       newChapter.save();
     });
   

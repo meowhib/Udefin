@@ -45,14 +45,17 @@ router.get("/:id", async (req, res) => {
     const course = await Course.findById(req.params.id).populate({
       path: "chapters",
       model: "Chapter",
-      populate: {
+      populate: [{
         path: "lessons",
         model: "Lesson",
         populate: {
           path: "resources",
           model: "Resource"
         }
-      }
+      }, {
+        path: "resources",
+        model: "Resource"
+      }]
     });
     if (!course) {
       return res.status(404).send("Course not found");
