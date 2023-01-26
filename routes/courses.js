@@ -40,9 +40,20 @@ router.get("/all", (req, res) => {
 
 //Renders course page
 router.get("/:id", async (req, res) => {
-  //Returns the course with all its chapters, lessons and resources
   try {
-    const course = await Course.findById(req.params.id).populate({ path: "chapters", populate: { path: "lessons", populate: { path: "resources"} } });
+    //Returns the course with all its chapters, lessons and resources
+    const course = await Course.findById(req.params.id).populate({
+      path: "chapters",
+      model: "Chapter",
+      populate: {
+        path: "lessons",
+        model: "Lesson",
+        populate: {
+          path: "resources",
+          model: "Resource"
+        }
+      }
+    });
     if (!course) {
       return res.status(404).send("Course not found");
     } else {
