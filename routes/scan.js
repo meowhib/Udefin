@@ -38,7 +38,7 @@ async function scanCourse(courseName){
     //Get a list of chapters
     let chapters = getFolders(coursePath);
 
-    chapters.forEach(async chapter => {
+    chapters.forEach(async (chapter) => {
       let chapterPath = coursePath + '/' + chapter;
       
       const newChapter = new Chapter({
@@ -54,7 +54,9 @@ async function scanCourse(courseName){
       let subtitles = getFiles(chapterPath, ["vtt", "srt"]);
       let resources = getFiles(chapterPath, ["pdf", "html"]);
 
-      lessons.forEach(lesson => {
+      let lessonsPromises = [];
+
+      lessons.forEach(async (lesson) => {
         const lessonPath = chapterPath + '/' + lesson;
         let lessonResourcesIDs = []; //Contains all the ids of the resources that belong to this lesson
 
@@ -73,7 +75,7 @@ async function scanCourse(courseName){
           });
 
           lessonResourcesIDs.push(newResource.id);
-          newResource.save();
+          await newResource.save();
         }
         
         //Get the subtitle that corresponds to this lesson
@@ -82,45 +84,62 @@ async function scanCourse(courseName){
         //Remove the filtered subtitle from the subtitles array
         subtitles = subtitles.filter(subtitle => !subtitle.startsWith(getIndex(lesson)));
 
-        const newLesson = new Lesson({
-          index: getIndex(lesson),
-          name: lesson,
-          path: lessonPath,
-          type: getExtension(lesson),
-          subtitle: lessonSubtitle ? chapterPath + lessonSubtitle : null,
-          resources: lessonResourcesIDs,
-          chapter: newChapter._id,
-        });
+        let durationPromise = getVideoDurationInSeconds(lessonPath);
+        lessonsPromises.push(durationPromise);
 
-        //Get the duration of the video
-        getVideoDurationInSeconds(lessonPath)
-        .then((duration) => {
-          newLesson.duration = duration;
+        durationPromise.then(async (duration) => {
+          const newLesson = new Lesson({
+            index: getIndex(lesson),
+            name: lesson,
+            path: lessonPath,
+            type: getExtension(lesson),
+            subtitle: lessonSubtitle ? chapterPath + lessonSubtitle : null,
+            length: duration,
+            resources: lessonResourcesIDs,
+            chapter: newChapter.id,
+            course: newCourse.id,
+          });
+
+          await newLesson.save();
+          newChapter.lessons.push(newLesson.id);
         })
-        .catch((error) => {
-          newLesson.duration = -1;
+        .catch(async (error) => {
+          const newLesson = new Lesson({
+            index: getIndex(lesson),
+            name: lesson,
+            path: lessonPath,
+            type: getExtension(lesson),
+            subtitle: lessonSubtitle ? chapterPath + lessonSubtitle : null,
+            length: -1,
+            resources: lessonResourcesIDs,
+            chapter: newChapter.id,
+            course: newCourse.id,
+          });
+    
+          await newLesson.save();
+          newChapter.lessons.push(newLesson.id);
         });
-
-        newChapter.lessons.push(newLesson.id);
-        newLesson.save();
       });
-      
+      // newChapter.resources = resources.map(async (resource) => {
+      //   const newResource = new Resource({
+      //     index: getIndex(resource),
+      //     name: resource,
+      //     path: chapterPath + resource,
+      //     type: getExtension(resource),
+      //   });
+
+      //   await newResource.save();
+      //   return newResource.id;
+      // });
+
+      // Wait for all the promises to resolve
+      await Promise.all(lessonsPromises);
+
+      await newChapter.save();
       newCourse.chapters.push(newChapter.id);
-      newChapter.resources = resources.map(resource => {
-        const newResource = new Resource({
-          index: getIndex(resource),
-          name: resource,
-          path: chapterPath + resource,
-          type: getExtension(resource),
-        });
-
-        newResource.save();
-        return newResource.id;
-      });
-      newChapter.save();
     });
   
-    newCourse.save();
+    await newCourse.save();
 
     const endTime = new Date().getTime();
     console.log("🚀 Scanning complete! Took " + (endTime - startTime) / 1000 + " seconds");
