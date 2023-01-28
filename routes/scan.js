@@ -34,112 +34,113 @@ async function scanCourse(courseName){
       path: coursePath,
       chapters: [],
     });
-  
-    //Get a list of chapters
-    let chapters = getFolders(coursePath);
 
-    chapters.forEach(async (chapter) => {
-      let chapterPath = coursePath + '/' + chapter;
-      
+    await newCourse.save();
+    
+    //Get a list of chapters
+    const chapters = getFolders(coursePath);
+
+    //Loop through chapters
+    for (let i = 0; i < chapters.length; i++) {
+      const chapterPath = coursePath + '/' + chapters[i];
+      const chapterName = chapters[i];
+      const chapterIndex = getIndex(chapterName);
+
+      //Create a new chapter
       const newChapter = new Chapter({
-        index: getIndex(chapter),
-        name: chapter,
+        name: chapterName,
         path: chapterPath,
-        course: newCourse.id,
+        index: chapterIndex,
         lessons: [],
       });
-  
-      //Get a list of files
-      const lessons = getFiles(chapterPath, ["mp4", "mkv"])
-      let subtitles = getFiles(chapterPath, ["vtt", "srt"]);
-      let resources = getFiles(chapterPath, ["pdf", "html"]);
-
-      let lessonsPromises = [];
-
-      lessons.forEach(async (lesson) => {
-        const lessonPath = chapterPath + '/' + lesson;
-        let lessonResourcesIDs = []; //Contains all the ids of the resources that belong to this lesson
-
-        //Get the resources that correspond to this lesson
-        let lessonResources = resources.filter(resource => resource.startsWith(getIndex(lesson).match()));
-        //Remove filtered resources from the resources array
-        resources = resources.filter(resource => !resource.startsWith(getIndex(lesson)));
-
-        //Constructs a list of resources that belong to this lesson
-        for (let lessonResource of lessonResources){
-          const newResource = new Resource({
-            index: getIndex(lessonResource),
-            name: lessonResource,
-            path: chapterPath + lessonResource,
-            type: getExtension(lessonResource),
-          });
-
-          lessonResourcesIDs.push(newResource.id);
-          await newResource.save();
-        }
-        
-        //Get the subtitle that corresponds to this lesson
-        let lessonSubtitle = subtitles.find(subtitle => subtitle.startsWith(getIndex(lesson)));
-
-        //Remove the filtered subtitle from the subtitles array
-        subtitles = subtitles.filter(subtitle => !subtitle.startsWith(getIndex(lesson)));
-
-        let durationPromise = getVideoDurationInSeconds(lessonPath);
-        lessonsPromises.push(durationPromise);
-
-        durationPromise.then(async (duration) => {
-          const newLesson = new Lesson({
-            index: getIndex(lesson),
-            name: lesson,
-            path: lessonPath,
-            type: getExtension(lesson),
-            subtitle: lessonSubtitle ? chapterPath + lessonSubtitle : null,
-            length: duration,
-            resources: lessonResourcesIDs,
-            chapter: newChapter.id,
-            course: newCourse.id,
-          });
-
-          await newLesson.save();
-          newChapter.lessons.push(newLesson.id);
-        })
-        .catch(async (error) => {
-          const newLesson = new Lesson({
-            index: getIndex(lesson),
-            name: lesson,
-            path: lessonPath,
-            type: getExtension(lesson),
-            subtitle: lessonSubtitle ? chapterPath + lessonSubtitle : null,
-            length: -1,
-            resources: lessonResourcesIDs,
-            chapter: newChapter.id,
-            course: newCourse.id,
-          });
-    
-          await newLesson.save();
-          newChapter.lessons.push(newLesson.id);
-        });
-      });
-      // newChapter.resources = resources.map(async (resource) => {
-      //   const newResource = new Resource({
-      //     index: getIndex(resource),
-      //     name: resource,
-      //     path: chapterPath + resource,
-      //     type: getExtension(resource),
-      //   });
-
-      //   await newResource.save();
-      //   return newResource.id;
-      // });
-
-      // Wait for all the promises to resolve
-      await Promise.all(lessonsPromises);
 
       await newChapter.save();
-      newCourse.chapters.push(newChapter.id);
-    });
-  
-    await newCourse.save();
+      await Course.findByIdAndUpdate(newCourse._id, { $push: { chapters: newChapter._id } });
+
+      //Get a list of lessons
+      const lessons = getFiles(chapterPath, ['mp4', "mkv"]);
+      let subtitles = getFiles(chapterPath, ["vtt", "srt"]);
+      let resources = getFiles(chapterPath, ["pdf", "html"]); 
+      
+      //Loop through lessons
+      for (let j = 0; j < lessons.length; j++) {
+        //Contains all the ids of the resources that belong to this lesson
+        let lessonResourcesIDs = [];
+
+        // let lessonResources = resources.filter(resource => resource.startsWith(getIndex(lessons[i])));
+
+        // filter out the resources that start with a number until a dot
+        let lessonResources = resources.filter(resource => resource.startsWith(lessons[j].match(/^[0-9]+\./)));
+
+        resources = resources.filter(resource => !resource.startsWith(lessons[j].match(/^[0-9]+\./)));
+
+        //Loop through resources
+        for (let k = 0; k < lessonResources.length; k++) {
+          const newResource = new Resource({
+            index: getIndex(lessonResources[k]),
+            name: lessonResources[k],
+            path: chapterPath + lessonResources[k],
+            type: getExtension(lessonResources[k]),
+          });
+
+          await newResource.save();
+          lessonResourcesIDs.push(newResource._id);
+        }
+
+        //Get the subtitle that corresponds to this lesson
+        let lessonSubtitle = subtitles.find(subtitle => subtitle.startsWith(getIndex(lessons[j])));
+
+        //Remove the filtered subtitle from the subtitles array
+        subtitles = subtitles.filter(subtitle => !subtitle.startsWith(getIndex(lessons[j])));
+
+        //Get the lesson path
+        const lessonPath = chapterPath + '/' + lessons[j];
+        const lessonName = lessons[j];
+        const lessonIndex = getIndex(lessonName);
+
+        //Get the lesson duration
+        const lessonDuration = await getVideoDurationInSeconds(lessonPath)
+          .then((duration) => {
+            return duration;
+          })
+          .catch((error) => {
+            return -1;
+          });
+
+        //Create a new lesson
+        const newLesson = new Lesson({
+          index: lessonIndex,
+          name: lessonName,
+          path: lessonPath,
+          course: newCourse._id,
+          chapter: newChapter._id,
+          length: lessonDuration,
+          progress: 0,
+          subtitlePath: lessonSubtitle ? chapterPath + '/' + lessonSubtitle : null,
+          resources: lessonResourcesIDs,
+        });
+
+        await newLesson.save();
+
+        //Assign remaining resources to the chapter
+        if (resources.length > 0) {
+          for (let k = 0; k < resources.length; k++) {
+            const newResource = new Resource({
+              index: getIndex(resources[k]),
+              name: resources[k],
+              path: chapterPath + resources[k],
+              type: getExtension(resources[k]),
+            });
+
+            await newResource.save();
+            await Chapter.findByIdAndUpdate(newChapter._id, { $push: { resources: newResource._id } });
+          }
+        }
+
+        //Add the lesson to the chapter
+        await Chapter.findByIdAndUpdate(newChapter._id, { $push: { lessons: newLesson._id } });
+      }
+    }
 
     const endTime = new Date().getTime();
     console.log("🚀 Scanning complete! Took " + (endTime - startTime) / 1000 + " seconds");
@@ -201,9 +202,7 @@ router.get("/", (req, res) => {
         courses.forEach(course => {
             scanCourse(course);
         });
-        
-        const endTime = new Date().getTime();
-        console.log("🚀 Scanning complete! Took " + (endTime - startTime) / 1000 + " seconds");
+
         return res.redirect("/courses");
 
     } else {
@@ -236,6 +235,6 @@ router.get("/delete", (req, res) => {
             res.status(200).redirect("/courses");
         }
     }); 
-})
+});
 
 module.exports = router
