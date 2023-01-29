@@ -12,7 +12,11 @@ router.use(cors());
 //Renders courses page
 router.get("/", async (req, res) => {
   //find all the courses and project only the names and ids
+<<<<<<< HEAD
   let courses = await Course.find({}).populate({ path: "chapters", model: "Chapter", populate: [{ path: "lessons", model: "Lesson", populate: {path: "resources", model: "Resource" } }, { path: "resources", model: "Resource"}] });
+=======
+  let courses = await Course.find({}).populate({ path: "chapters", model: "Chapter", populate: { path: "lessons", model: "Lesson" } });
+>>>>>>> 4494593570b4a7695023cb42b2de65565d4e4d62
 
   for (let i = 0; i < courses.length; i++) {
     courses[i] = {
