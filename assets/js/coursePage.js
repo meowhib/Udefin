@@ -18,7 +18,6 @@ function setSource(src){
     video.play();
     videoTitle.innerHTML = data.name;
     videoTrack.setAttribute("src", data.subtitlePath);
-    console.log(data.progress);
     video.currentTime = data.progress;
     video.focus();
   });
@@ -74,7 +73,6 @@ function updateProgress(){
   if (videoSource != "" && isPlaying(document.getElementById("video"))){
     const video = document.getElementById("video");
     const lessonId = videoSource.split("/")[videoSource.split("/").length - 1];
-    console.log(lessonId);
     const currentTime = Math.round(video.currentTime);
     
     //Send the progress to the server
