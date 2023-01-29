@@ -14,6 +14,7 @@ const router = express.Router();
 //Routers
 const coursesRouter = require("./routes/courses");
 const lessonsRouter = require("./routes/lessons");
+const resourcesRouter = require("./routes/resources");
 const videoRouter = require("./routes/video");
 const scanRouter = require("./routes/scan");
 
@@ -29,6 +30,7 @@ app.use("/", router);
 app.use("/scan", scanRouter);
 app.use("/courses", coursesRouter);
 app.use("/lessons", lessonsRouter);
+app.use("/resources", resourcesRouter);
 app.use("/video", videoRouter);
 
 //Conntect to MongoDB with strictQuery setting to false
