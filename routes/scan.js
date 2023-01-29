@@ -58,8 +58,8 @@ async function scanCourse(courseName){
       await Course.findByIdAndUpdate(newCourse._id, { $push: { chapters: newChapter._id } });
 
       //Get a list of lessons
-      const lessons = getFiles(chapterPath, ['mp4', "mkv"]);
-      let subtitles = getFiles(chapterPath, ["vtt", "srt"]);
+      const lessons = getFiles(chapterPath, ['mp4']);
+      let subtitles = getFiles(chapterPath, ["srt"]);
       let resources = getFiles(chapterPath, ["pdf", "html"]); 
       
       //Loop through lessons
@@ -67,12 +67,10 @@ async function scanCourse(courseName){
         //Contains all the ids of the resources that belong to this lesson
         let lessonResourcesIDs = [];
 
-        // let lessonResources = resources.filter(resource => resource.startsWith(getIndex(lessons[i])));
+        // Filter out the resources that start with a number until a dot
+        let lessonResources = resources.filter(resource => resource.startsWith(getIndex(lessons[j])));
 
-        // filter out the resources that start with a number until a dot
-        let lessonResources = resources.filter(resource => resource.startsWith(lessons[j].match(/^[0-9]+\./)));
-
-        resources = resources.filter(resource => !resource.startsWith(lessons[j].match(/^[0-9]+\./)));
+        resources = resources.filter(resource => !resource.startsWith(getIndex(lessons[j])));
 
         //Loop through resources
         for (let k = 0; k < lessonResources.length; k++) {

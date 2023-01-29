@@ -36,12 +36,11 @@ router.post("/progress", async (req, res) => {
 
       //Update the overall progress of the course
       await Course.findByIdAndUpdate(course.id, {overAllProgress: percentage});
+      return res.status(200).send("Progress updated");
     }
   } catch {
-    console.log("Failed to update progress");
+    res.status(500).send("Failed to update progress");
   }
-
-  res.send("Progress updated");
 });
 
 //Updates the progress of a lesson
@@ -65,12 +64,11 @@ router.post("/progress", async (req, res) => {
 
       //Update the overall progress of the course
       await Course.findByIdAndUpdate(course.id, {overAllProgress: percentage});
+      return res.status(200).send("Progress updated");
     }
   } catch {
-    console.log("Failed to update progress");
+      return res.status(500).send("Failed to update progress");
   }
-
-  res.send("Progress updated");
 });
 
 module.exports = router;
