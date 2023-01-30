@@ -12,6 +12,10 @@ router.get("/:lessonid", async (req, res) => {
     return res.status(400).send("Requires Range header" + "\n" + lessonPath.path);
   }
 
+  if (!lessonPath){
+    return res.status(404).send("No lesson found");
+  }
+
   const videoPath = lessonPath.path;
   const videoSize = fs.statSync(videoPath).size;
   const CHUNK_SIZE = 10 ** 6;
