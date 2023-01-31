@@ -2,7 +2,23 @@ const Course = require("../models/course");
 
 exports.getCourses = async (req, res) => {
   //find all the courses and project only the names and ids
-  let courses = await Course.find({}).populate({ path: "chapters", model: "Chapter", populate: [{ path: "lessons", model: "Lesson", populate: {path: "resources", model: "Resource" } }, { path: "resources", model: "Resource"}] });
+  let courses = await Course.find({}).populate({
+    path: "chapters",
+    model: "Chapter",
+    option: { sort: { index: 1 } },
+    populate: [{
+      path: "lessons",
+      model: "Lesson",
+      option: { sort: { index: 1 } },
+      populate: {
+        path: "resources",
+        model: "Resource"
+      }
+    }, {
+      path: "resources",
+      model: "Resource"
+    }]
+  });
 
   for (let i = 0; i < courses.length; i++) {
     courses[i] = {
@@ -24,9 +40,11 @@ exports.getCourse = async (req, res) => {
     const course = await Course.findById(req.params.id).populate({
       path: "chapters",
       model: "Chapter",
+      option: { sort: { index: 1 } },
       populate: [{
         path: "lessons",
         model: "Lesson",
+        option: { sort: { index: 1 } },
         populate: {
           path: "resources",
           model: "Resource"
