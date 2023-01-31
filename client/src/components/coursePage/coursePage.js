@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
+import Accordion from "./accordion";
+
 const coursePage = () => {
   let { courseId } = useParams();
 
@@ -41,7 +43,6 @@ const coursePage = () => {
 
   return (
     <>
-      <h1>Course page {courseId}</h1>
       <div className="container-fluid p-0">
         <div className="row gx-0">
           <div className="col-xl-8">
@@ -52,6 +53,11 @@ const coursePage = () => {
             </div>
             <div className="video-info-container py-3">
               <h3 id="videoTitle">{courseData.name}</h3>
+            </div>
+          </div>
+          <div className="col-xl-4">
+            <div class="vh-100 position-relative">
+              <Accordion chapters={ courseData.chapters }/>
             </div>
           </div>
         </div>

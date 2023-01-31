@@ -5,7 +5,6 @@ exports.getCourses = async (req, res) => {
   let courses = await Course.find({}).populate({
     path: "chapters",
     model: "Chapter",
-    option: { sort: { index: 1 } },
     populate: [{
       path: "lessons",
       model: "Lesson",
@@ -13,11 +12,13 @@ exports.getCourses = async (req, res) => {
       populate: {
         path: "resources",
         model: "Resource"
-      }
+      },
+      options: { sort: { index: 1 } },
     }, {
       path: "resources",
       model: "Resource"
-    }]
+    }],
+    options: { sort: { index: 1 } },
   });
 
   for (let i = 0; i < courses.length; i++) {
@@ -40,19 +41,19 @@ exports.getCourse = async (req, res) => {
     const course = await Course.findById(req.params.id).populate({
       path: "chapters",
       model: "Chapter",
-      option: { sort: { index: 1 } },
       populate: [{
         path: "lessons",
         model: "Lesson",
-        option: { sort: { index: 1 } },
         populate: {
           path: "resources",
           model: "Resource"
-        }
+        },
+        options: { sort: { index: 1 } },
       }, {
         path: "resources",
         model: "Resource"
-      }]
+      }],
+      options: { sort: { index: 1 } } 
     });
     if (!course) {
       return res.status(404).send("Course not found");
