@@ -11,6 +11,7 @@ A selfhosted video courses player. A solution for anyone that downloads courses 
 ## Requirements
 - Node.js
 - MongoDB
+
 ## Getting started
 1. Clone the repository
 ```bash
@@ -25,6 +26,11 @@ npm install
 3. Start the application
 ```bash
 npm start
+```
+
+If you want to run MongoDB on docker you can follow the following instructions:
+```bash
+docker run -d -p 27017:27017 -v /path/to/data:/data/db mongo
 ```
 
 ## Upcomming features
