@@ -10,6 +10,12 @@ const coursePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [source, setSource] = useState("");
+  const [title, setTitle] = useState("");
+
+  const lessonClickHandler = (lessonId) => {
+    console.log("Source is set to " + lessonId);
+    setSource("http://localhost:3000/video/" + lessonId);
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -47,17 +53,17 @@ const coursePage = () => {
         <div className="row gx-0">
           <div className="col-xl-8">
             <div className="video-container ratio ratio-16x9 bg-primary">
-              <video id="video" controls autoplay>
-                <source id="videoSource" src={ "http://localhost:3000/video/" + courseId } type="video/mp4" />
+              <video id="video" controls autoPlay>
+                <source id="videoSource" src={ source } type="video/webm" />
               </video>
             </div>
             <div className="video-info-container py-3">
-              <h3 id="videoTitle">{courseData.name}</h3>
+              <h3 id="videoTitle">{ title }</h3>
             </div>
           </div>
           <div className="col-xl-4">
-            <div class="vh-100 position-relative">
-              <Accordion chapters={ courseData.chapters }/>
+            <div className="vh-100 position-relative">
+              <Accordion chapters={ courseData.chapters } lessonClickHandler={lessonClickHandler} />
             </div>
           </div>
         </div>
