@@ -11,6 +11,10 @@ const chapterSchema = new mongoose.Schema({
   lessons: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Lesson'
+  }],
+  resources: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Resource'
   }]
 });
 

@@ -9,7 +9,7 @@ const router = express.Router();
 const Course = require("../models/course");
 const Chapter = require("../models/chapter");
 const Lesson = require("../models/lesson");
-const { runInContext } = require("vm");
+const Resource = require("../models/resource");
 
 //Consts
 const coursesPath = './assets/courses';
@@ -26,7 +26,6 @@ async function scanCourse(courseName){
     const course = await Course.findOne({ name: courseName });
 
     if (course){
-      console.log("Course already exists. [" + courseName + "]");
       return;
     }
 
@@ -35,80 +34,112 @@ async function scanCourse(courseName){
       path: coursePath,
       chapters: [],
     });
-  
-    //Get a list of chapters
-    let chapters = getFolders(coursePath);
+
+    await newCourse.save();
     
-    chapters.forEach(chapter => {
-      let chapterPath = coursePath + '/' + chapter;
-      
+    //Get a list of chapters
+    const chapters = getFolders(coursePath);
+
+    //Loop through chapters
+    for (let i = 0; i < chapters.length; i++) {
+      const chapterPath = coursePath + '/' + chapters[i];
+      const chapterName = chapters[i];
+      const chapterIndex = getIndex(chapterName);
+
+      //Create a new chapter
       const newChapter = new Chapter({
-        index: getIndex(chapter),
-        name: chapter,
+        name: chapterName,
         path: chapterPath,
-        course: newCourse._id,
+        index: chapterIndex,
         lessons: [],
       });
-  
-      //Get a list of lessons
-      let lessons = getFiles(chapterPath, ['mp4', 'webm', 'ogg', "mkv"]);
-  
-      //Exit if no lessons
-      if (!lessons.length) {
-        console.log('No lessons found in ' + chapterPath);
-        return;
-      }
-  
-      let subtitles = getFiles(chapterPath, ['vtt']);
-      let indexedSubtitles = {};
-      
-      if (subtitles){
-        for (let subtitle of subtitles){
-          indexedSubtitles[getIndex(subtitle)] = "/" + chapterPath.split("/").slice(2).join("/") + '/' + subtitle;
-        }
-      }
 
-      lessons.forEach(async lesson => {
-        let lessonPath = chapterPath + '/' + lesson;
-        let newLesson = null;
-        let lessonSubtitle = indexedSubtitles[getIndex(lesson)]
-  
-        //Get the duration of the video
-        try {
-          await getVideoDurationInSeconds(lessonPath).then((duration) => {
-            newLesson = new Lesson({
-              index: getIndex(lesson),
-              name: lesson,
-              path: lessonPath,
-              course: newCourse._id,
-              chapter: newChapter._id,
-              length: duration,
-              subtitlePath: lessonSubtitle ? lessonSubtitle : ""
-            }).save()
-  
-            newChapter.lessons.push(newLesson._id);
+      await newChapter.save();
+      await Course.findByIdAndUpdate(newCourse._id, { $push: { chapters: newChapter._id } });
+
+      //Get a list of lessons
+      const lessons = getFiles(chapterPath, ['mp4']);
+      let subtitles = getFiles(chapterPath, ["srt"]);
+      let resources = getFiles(chapterPath, ["pdf", "html"]); 
+      
+      //Loop through lessons
+      for (let j = 0; j < lessons.length; j++) {
+        //Contains all the ids of the resources that belong to this lesson
+        let lessonResourcesIDs = [];
+
+        // Filter out the resources that start with a number until a dot
+        let lessonResources = resources.filter(resource => resource.startsWith(getIndex(lessons[j])));
+
+        resources = resources.filter(resource => !resource.startsWith(getIndex(lessons[j])));
+
+        //Loop through resources
+        for (let k = 0; k < lessonResources.length; k++) {
+          const newResource = new Resource({
+            index: getIndex(lessonResources[k]),
+            name: lessonResources[k],
+            path: chapterPath + lessonResources[k],
+            type: getExtension(lessonResources[k]),
           });
-        } catch (error) {
-          console.log("❌ Couldn't get the duration of the video: " + lessonPath);
-          newLesson = new Lesson({
-            index: getIndex(lesson),
-            name: lesson,
-            path: lessonPath,
-            course: newCourse._id,
-            chapter: newChapter._id,
-            length: -1,
-            subtitlePath: lessonSubtitle ? lessonSubtitle : ""
-          }).save()
-  
-          newChapter.lessons.push(newLesson._id);
+
+          await newResource.save();
+          lessonResourcesIDs.push(newResource._id);
         }
-      });
-  
-      newChapter.save();
-      newCourse.chapters.push(newChapter._id);
-    });
-  
-    newCourse.save();
+
+        //Get the subtitle that corresponds to this lesson
+        let lessonSubtitle = subtitles.find(subtitle => subtitle.startsWith(getIndex(lessons[j])));
+
+        //Remove the filtered subtitle from the subtitles array
+        subtitles = subtitles.filter(subtitle => !subtitle.startsWith(getIndex(lessons[j])));
+
+        //Get the lesson path
+        const lessonPath = chapterPath + '/' + lessons[j];
+        const lessonName = lessons[j];
+        const lessonIndex = getIndex(lessonName);
+
+        //Get the lesson duration
+        const lessonDuration = await getVideoDurationInSeconds(lessonPath)
+          .then((duration) => {
+            return duration;
+          })
+          .catch((error) => {
+            return -1;
+          });
+
+        //Create a new lesson
+        const newLesson = new Lesson({
+          index: lessonIndex,
+          name: lessonName,
+          path: lessonPath,
+          course: newCourse._id,
+          chapter: newChapter._id,
+          length: lessonDuration,
+          progress: 0,
+          subtitlePath: lessonSubtitle ? chapterPath + '/' + lessonSubtitle : null,
+          resources: lessonResourcesIDs,
+        });
+
+        await newLesson.save();
+
+        //Assign remaining resources to the chapter
+        if (resources.length > 0) {
+          for (let k = 0; k < resources.length; k++) {
+            const newResource = new Resource({
+              index: getIndex(resources[k]),
+              name: resources[k],
+              path: chapterPath + resources[k],
+              type: getExtension(resources[k]),
+            });
+
+            await newResource.save();
+            await Chapter.findByIdAndUpdate(newChapter._id, { $push: { resources: newResource._id } });
+          }
+        }
+
+        //Add the lesson to the chapter
+        await Chapter.findByIdAndUpdate(newChapter._id, { $push: { lessons: newLesson._id } });
+      }
+    }
+
     const endTime = new Date().getTime();
     console.log("🚀 Scanning complete! Took " + (endTime - startTime) / 1000 + " seconds");
 }
@@ -169,9 +200,7 @@ router.get("/", (req, res) => {
         courses.forEach(course => {
             scanCourse(course);
         });
-        
-        const endTime = new Date().getTime();
-        console.log("🚀 Scanning complete! Took " + (endTime - startTime) / 1000 + " seconds");
+
         return res.redirect("/courses");
 
     } else {
@@ -199,12 +228,11 @@ router.get("/rescan", async (req, res) => {
 router.get("/delete", (req, res) => {
     Course.deleteMany({}, (err, result) => {
         if (err) {
-            console.log(err);
             res.status(500).redirect("/courses");
         } else {
             res.status(200).redirect("/courses");
         }
     }); 
-})
+});
 
 module.exports = router

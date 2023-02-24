@@ -20,7 +20,11 @@ const lessonSchema = new mongoose.Schema({
   subtitlePath: {
     type: String,
     default: ""
-  }
+  },
+  resources: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Resource'
+  }],
 });
 
 module.exports = mongoose.model('Lesson', lessonSchema);
